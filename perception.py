@@ -53,14 +53,24 @@ class BackgroundSubtraction:
     Removes the points in the sweep corresponding to walls and other static obstacles
     """
     def __init__(self):
-        pass
+        self.outer_wall = np.array([])
 
     def run(self, world_frame_sweep):
         """
         :param world_frame_sweep: Current sweep in world frame as an Nx3 array of floats
         :return: Same as input but with points corresponding to static objects removed
         """
-        pass
+        x = world_frame_sweep[:,0]
+        y = world_frame_sweep[:,1]
+
+        # Do something
+
+        plt.scatter(x, y, c=(1.0,0.37,0.22,0.2))
+        plt.axis("equal")
+        plt.title("Sweep in World Frame")
+        plt.xlabel("X (meters)")
+        plt.ylabel("Y (meters)")
+        plt.show()
 
 
 class Clustering:

@@ -8,8 +8,6 @@ import sys
 import json
 import matplotlib.pyplot as plt
 
-test_data = [[0.0, 0.0, 1.9596215318888426],]
-
 
 class TestInput:
     def __init__(self, json_str):
@@ -74,12 +72,13 @@ def main():
     y_nominal = nominal_sweep[:, 1]
     x_sensor = starting_line_sweep[:, 0]
     y_sensor = starting_line_sweep[:, 1]
-    colors = [[1, 0, 0, 0.5], [0, 0, 1, 0.5]]
+    colors = [[1, 0, 0, 0.2], [0, 0, 1, 0.2]]
 
+    # plt.scatter(x_nominal, y_nominal, c=x_nominal, cmap='hsv')
     plt.scatter(x_nominal, y_nominal, c=colors[0])
     # plt.scatter(x_sensor, y_sensor, c=colors[1])
     plt.axis("equal")
-    plt.title("Nominal Sweep from Field Center")
+    plt.title("Sweep in World Frame")
     plt.xlabel("X (meters)")
     plt.ylabel("Y (meters)")
     plt.show()

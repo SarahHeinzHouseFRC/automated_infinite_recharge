@@ -40,8 +40,9 @@ def icp_matching(previous_points, current_points):
             # for stopping simulation with the esc key.
             plt.gcf().canvas.mpl_connect('key_release_event',
                     lambda event: [exit(0) if event.key == 'escape' else None])
-            plt.plot(previous_points[0, :], previous_points[1, :], ".r")
-            plt.plot(current_points[0, :], current_points[1, :], ".b")
+            # plt.plot(previous_points[0, :], previous_points[1, :], ".r")
+            plt.plot(previous_points[0, :], previous_points[1, :], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
+            plt.plot(current_points[0, :], current_points[1, :], color=(0.15, 0.65, 0.65, 1.0), marker=".", linestyle='')
             plt.plot(0.0, 0.0, "xr")
             plt.axis("equal")
             plt.pause(0.05)
