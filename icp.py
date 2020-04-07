@@ -7,6 +7,7 @@ import math
 
 import matplotlib.pyplot as plt
 import numpy as np
+from test_data import TestData
 
 #  ICP parameters
 EPS = 0.0001
@@ -43,7 +44,7 @@ def icp_matching(previous_points, current_points):
             plt.plot(current_points[0, :], current_points[1, :], ".b")
             plt.plot(0.0, 0.0, "xr")
             plt.axis("equal")
-            plt.pause(0.1)
+            plt.pause(0.05)
 
         indexes, error = nearest_neighbor_association(previous_points, current_points)
         Rt, Tt = svd_motion_estimation(previous_points[:, indexes], current_points)
@@ -133,20 +134,30 @@ def main():
     for _ in range(nsim):
 
         # previous points
-        px = (np.random.rand(nPoint) - 0.5) * fieldLength
-        py = (np.random.rand(nPoint) - 0.5) * fieldLength
+        td = TestData()
+        p = td.nominal_input.sweep
+        px = p[:,0]
+        py = p[:,1]
+        # px = (np.random.rand(nPoint) - 0.5) * fieldLength
+        # py = (np.random.rand(nPoint) - 0.5) * fieldLength
         previous_points = np.vstack((px, py))
 
+        input_data = td.top_wall_input1
+        c = input_data.sweep
+        cx = c[:,0]
+        cy = c[:,1]
         # current points
-        cx = [math.cos(motion[2]) * x - math.sin(motion[2]) * y + motion[0]
-              for (x, y) in zip(px, py)]
-        cy = [math.sin(motion[2]) * x + math.cos(motion[2]) * y + motion[1]
-              for (x, y) in zip(px, py)]
+        # cx = [math.cos(motion[2]) * x - math.sin(motion[2]) * y + motion[0]
+        #       for (x, y) in zip(px, py)]
+        # cy = [math.sin(motion[2]) * x + math.cos(motion[2]) * y + motion[1]
+        #       for (x, y) in zip(px, py)]
         current_points = np.vstack((cx, cy))
 
         R, T = icp_matching(previous_points, current_points)
-        print("R:", R)
-        print("T:", T)
+        print("Calculated R:", R)
+        print("Calculated T:", T)
+        print("Real R: ", [[math.sin(input_data.theta), math.cos(input_data.theta)], [-math.cos(input_data.theta), math.sin(input_data.theta)]])
+        print("Real T: ", [input_data.y, -input_data.x])
 
 
 if __name__ == '__main__':
