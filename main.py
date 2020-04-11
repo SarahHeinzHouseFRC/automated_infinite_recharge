@@ -4,8 +4,9 @@
 # Copyright (c) 2020 FRC Team 3260
 #
 
-from comms import SimCommands
-from comms_thread import CommsThread
+from comms import *
+from perception import Perception
+from planning import Planning
 from controls import Controls
 
 
@@ -17,16 +18,24 @@ def main():
         "tx_port": 8000
     }
 
-    sim_commands = SimCommands()
-
     # Launch comms in background thread
-    comms = CommsThread(comms_config, sim_commands, True)
+    comms = CommsThread(comms_config, False)
     comms.daemon = True
     comms.start()
 
-    # Launch controls in main thread
-    controls = Controls(sim_commands)
-    controls.run()
+    # Launch perception, motion planning, and controls in main thread
+    perception = Perception()
+    planning = Planning()
+    controls = Controls()
+
+    try:
+        while True:
+            if len(comms.vehicle_state["lidarSweep"]) > 0:
+                pose, obstacles = perception.run(comms.vehicle_state)
+                waypoint = planning.run(pose, obstacles)
+                controls.run(waypoint, comms.vehicle_commands)
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == '__main__':
