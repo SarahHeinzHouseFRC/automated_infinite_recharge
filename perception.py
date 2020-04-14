@@ -4,6 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from geometry import *
 
 
 class Perception:
@@ -12,6 +13,41 @@ class Perception:
     """
     def __init__(self):
         plt.ion()
+
+        self.outer_wall = np.array([
+            [7.33, -4.11],
+            [8.0, -2.31],
+            [8.0, 2.31],
+            [7.33, 4.11],
+            [-7.33, 4.11],
+            [-8.0, 2.31],
+            [-8.0, -2.31],
+            [-7.33, -4.11],
+        ])
+        self.right_column = 0.0254 * np.array([
+            [105.12, -47.64],
+            [100.39, -36.61],
+            [89.37, -41.34],
+            [94.09, -52.36],
+        ])
+        self.top_column = 0.0254 * np.array([
+            [44.88, 97.64],
+            [40.55, 108.27],
+            [29.53, 103.54],
+            [33.86, 92.52],
+        ])
+        self.left_column = 0.0254 * np.array([
+            [-89.37, 41.34],
+            [-94.09, 52.36],
+            [-105.12, 47.64],
+            [-100.39, 36.61],
+        ])
+        self.bottom_column = 0.0264 * np.array([
+            [-29.53, -103.54],
+            [-33.86, -92.52],
+            [-44.88, -96.85],
+            [-40.55, -108.27],
+        ])
 
     def run(self, vehicle_state):
         """
@@ -100,7 +136,21 @@ class Perception:
         :param world_frame_sweep: Current sweep in world frame as an Nx3 array of floats
         :return: Same as input but with points corresponding to static objects removed
         """
-        pass
+        field = Polygon(self.outer_wall)
+
+        background_subtracted_sweep = list()
+        for point in world_frame_sweep:
+            if field.point_in_convex_polygon(point):
+                background_subtracted_sweep.append(point)
+
+        background_subtracted_sweep = np.array(background_subtracted_sweep)
+
+        plt.plot(self.outer_wall[:, 0], self.outer_wall[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
+        plt.plot(self.right_column[:, 0], self.right_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
+        plt.plot(self.top_column[:, 0], self.top_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
+        plt.plot(self.left_column[:, 0], self.left_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
+        plt.plot(self.bottom_column[:, 0], self.bottom_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
+        plt.plot(background_subtracted_sweep[:, 0], background_subtracted_sweep[:, 1], color=(0.15, 0.65, 0.65, 1.0), marker=".", linestyle='')
 
     def cluster(self, background_subtracted_sweep):
         """
