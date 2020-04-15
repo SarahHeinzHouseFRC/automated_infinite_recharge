@@ -3,8 +3,11 @@
 #
 
 import numpy as np
+import numpy.ma as ma
 import matplotlib.pyplot as plt
-from geometry import *
+from geometry import Polygon
+
+IN_TO_M = 0.0254
 
 
 class Perception:
@@ -14,40 +17,72 @@ class Perception:
     def __init__(self):
         plt.ion()
 
-        self.outer_wall = np.array([
-            [7.33, -4.11],
-            [8.0, -2.31],
-            [8.0, 2.31],
-            [7.33, 4.11],
-            [-7.33, 4.11],
-            [-8.0, 2.31],
-            [-8.0, -2.31],
-            [-7.33, -4.11],
+        self.outer_wall = IN_TO_M * np.array([
+            [161.81, 288.58],
+            [90.94, 314.96],
+            [-90.94, 314.96],
+            [-161.81, 288.58],
+            [-161.81, -288.58],
+            [-90.94, -314.96],
+            [90.94, -314.96],
+            [161.81, -288.58],
         ])
-        self.right_column = 0.0254 * np.array([
+        self.right_column = IN_TO_M * np.array([
             [105.12, -47.64],
             [100.39, -36.61],
             [89.37, -41.34],
             [94.09, -52.36],
         ])
-        self.top_column = 0.0254 * np.array([
+        self.top_column = IN_TO_M * np.array([
             [44.88, 97.64],
             [40.55, 108.27],
             [29.53, 103.54],
             [33.86, 92.52],
         ])
-        self.left_column = 0.0254 * np.array([
+        self.left_column = IN_TO_M * np.array([
             [-89.37, 41.34],
             [-94.09, 52.36],
             [-105.12, 47.64],
             [-100.39, 36.61],
         ])
-        self.bottom_column = 0.0264 * np.array([
+        self.bottom_column = IN_TO_M * np.array([
             [-29.53, -103.54],
             [-33.86, -92.52],
             [-44.88, -96.85],
             [-40.55, -108.27],
         ])
+        self.right_trench_right_wall = IN_TO_M * np.array([
+            [161.81, -59.84],
+            [161.81, -29.92],
+            [159.84, -29.92],
+            [159.84, -59.84],
+        ])
+        self.right_trench_left_wall = IN_TO_M * np.array([
+            [107.48, -59.84],
+            [107.48, -29.92],
+            [105.51, -29.92],
+            [105.51, -59.84],
+        ])
+        self.left_trench_right_wall = IN_TO_M * np.array([
+            [-159.84, 29.92],
+            [-159.84, 59.84],
+            [-161.81, 59.84],
+            [-161.81, 29.92],
+        ])
+        self.left_trench_left_wall = IN_TO_M * np.array([
+            [-105.51, 29.92],
+            [-105.51, 59.84],
+            [-107.48, 59.84],
+            [-107.48, 29.92],
+        ])
+        self.field_elements = [Polygon(_) for _ in
+                               [self.right_column, self.left_column, self.top_column, self.bottom_column,
+                                self.right_trench_right_wall, self.right_trench_left_wall,
+                                self.left_trench_right_wall, self.left_trench_left_wall]]
+        for fe in self.field_elements:
+            fe.scale(1.01)
+        self.field = Polygon(self.outer_wall)
+        self.field.scale(0.99)
 
     def run(self, vehicle_state):
         """
@@ -56,18 +91,29 @@ class Perception:
         """
         vehicle_state['lidarSweepCartesian'] = self.spherical_to_cartesian(self.parse_sweep(vehicle_state['lidarSweep']))
         pose, world_frame_sweep = self.localize(vehicle_state)
+        background_mask = self.subtract_background(world_frame_sweep)
+
+        mask0 = np.array(background_mask, dtype=bool)
+        mask1 = np.invert(mask0)
 
         vehicle_position = np.array([[pose['x'], pose['y']],])
 
         plt.clf()
-        plt.plot(world_frame_sweep[:, 0], world_frame_sweep[:, 1], c=(0.15, 0.65, 0.65, 0.2), marker='.', linestyle='')
-        plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 0.5), marker='x', linestyle='')
-        plt.draw()
+        plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], c='red', marker='.', label='Foreground point')
+        plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], c='gray', marker='.', label='Background point')
+        plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
+        plt.legend(loc='lower right')
+        # plt.fill(self.field.vertices[:, 0], self.field.vertices[:, 1], fc=(0,0,0,0), ec=(1.0, 0.37, 0.22, 0.5))
+        # for poly in self.field_elements:
+        #     plt.fill(poly.vertices[:,0], poly.vertices[:,1], fc=(1.0, 0.37, 0.22, 0.5))
+        plt.title("LIDAR Sweep Segmentation")
+        plt.xlabel("X (meters)")
+        plt.ylabel("Y (meters)")
         plt.axis('equal')
+        plt.draw()
         plt.pause(0.1)
 
-        background_subtracted_sweep = self.subtract_background(world_frame_sweep)
-        obstacles = self.cluster(background_subtracted_sweep)
+        obstacles = self.cluster(world_frame_sweep, background_mask)
         return pose, obstacles
 
     def parse_sweep(self, sweep):
@@ -133,29 +179,49 @@ class Perception:
     def subtract_background(self, world_frame_sweep):
         """
         Removes the points in the sweep corresponding to walls and other static obstacles
-        :param world_frame_sweep: Current sweep in world frame as an Nx3 array of floats
+        :param world_frame_sweep: Current sweep in world frame as an Nx2 array of floats
         :return: Same as input but with points corresponding to static objects removed
         """
-        field = Polygon(self.outer_wall)
 
-        background_subtracted_sweep = list()
-        for point in world_frame_sweep:
-            if field.point_in_convex_polygon(point):
-                background_subtracted_sweep.append(point)
+        background_mask = np.zeros(len(world_frame_sweep), dtype=int)
 
-        background_subtracted_sweep = np.array(background_subtracted_sweep)
+        for i, point in enumerate(world_frame_sweep):
+            if (self.field.point_in_convex_polygon(point) and not any(
+                    [fe.point_in_convex_polygon(point) for fe in self.field_elements])):
+                background_mask[i] = 1
 
-        plt.plot(self.outer_wall[:, 0], self.outer_wall[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
-        plt.plot(self.right_column[:, 0], self.right_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
-        plt.plot(self.top_column[:, 0], self.top_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
-        plt.plot(self.left_column[:, 0], self.left_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
-        plt.plot(self.bottom_column[:, 0], self.bottom_column[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker=".", linestyle='')
-        plt.plot(background_subtracted_sweep[:, 0], background_subtracted_sweep[:, 1], color=(0.15, 0.65, 0.65, 1.0), marker=".", linestyle='')
+            # if self.field.point_in_convex_polygon(point)
+            # and not self.bottom_column.point_in_convex_polygon(point)
+            # and not self.bottom_column.point_in_convex_polygon(point)
+            # and not self.bottom_column.point_in_convex_polygon(point)
+            # and not self.bottom_column.point_in_convex_polygon(point):
+            #     # background_subtracted_sweep.append(point)
+            #     background_mask[i] = 1
 
-    def cluster(self, background_subtracted_sweep):
+        return background_mask
+
+    def cluster(self, world_frame_sweep, background_mask):
         """
         Clumps together clusters of points and forms a list of obstacles
-        :param background_subtracted_sweep: Background-subtracted sweep as Nx3 array of floats
+        :param world_frame_sweep: Sweep in world frame as Nx2 array of floats
+        :param background_mask:
         :return: List of detected obstacles, their positions, and radii
         """
         pass
+
+
+_ = '''
+if self.field.point_in_convex_polygon(point)
+    and not any([col.point_in_convex_polygon(point) for col in self.field_elements]:
+'''
+
+_ = '''
+import numpy as np
+import numpy.ma as ma
+arr1 = np.array([0,1,2,3,4,5])
+mask = np.array([0,1,0,1,0,1])
+ma.masked_array(arr1, mask)
+## masked_array(data=[0, --, 2, --, 4, --],
+##             mask=[False,  True, False,  True, False,  True],
+##       fill_value=999999)
+'''

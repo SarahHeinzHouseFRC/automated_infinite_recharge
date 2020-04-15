@@ -17,6 +17,7 @@ def ccw(a, b, c):
 class Polygon:
     def __init__(self, vertices):
         self.vertices = vertices
+        self.center = np.average(self.vertices, axis=0)
 
     def point_in_convex_polygon(self, point):
         for i in range(len(self.vertices)):
@@ -27,6 +28,11 @@ class Polygon:
             if ccw(p1, p2, point) > 0:
                 return False
         return True
+
+    def scale(self, factor):
+        self.vertices -= self.center
+        self.vertices *= factor
+        self.vertices += self.center
 
 
 def main():
