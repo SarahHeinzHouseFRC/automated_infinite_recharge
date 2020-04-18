@@ -75,12 +75,13 @@ class Perception:
             [-107.48, 59.84],
             [-107.48, 29.92],
         ])
+
         self.field_elements = [Polygon(_) for _ in
                                [self.right_column, self.left_column, self.top_column, self.bottom_column,
                                 self.right_trench_right_wall, self.right_trench_left_wall,
                                 self.left_trench_right_wall, self.left_trench_left_wall]]
-        for fe in self.field_elements:
-            fe.scale(1.01)
+        for field_element in self.field_elements:
+            field_element.scale(1.01)
         self.field = Polygon(self.outer_wall)
         self.field.scale(0.99)
 
@@ -89,56 +90,63 @@ class Perception:
         :param vehicle_state: Current state of all sensors on the vehicle
         :return: Our pose and list of all obstacles
         """
-        vehicle_state['lidarSweepCartesian'] = self.spherical_to_cartesian(self.parse_sweep(vehicle_state['lidarSweep']))
-        pose, world_frame_sweep = self.localize(vehicle_state)
-        background_mask = self.subtract_background(world_frame_sweep)
+        # 1. Preprocess sweep
+        self.filter_empty_rays(vehicle_state)
+        self.parse_sweep(vehicle_state)
+        self.spherical_to_cartesian(vehicle_state)
 
-        mask0 = np.array(background_mask, dtype=bool)
-        mask1 = np.invert(mask0)
+        # 2. Localization
+        self.localize(vehicle_state)
+        self.vehicle_frame_to_world_frame(vehicle_state)
 
-        vehicle_position = np.array([[pose['x'], pose['y']],])
+        # 3. Segmentation
+        self.subtract_background(vehicle_state)
+        self.cluster(vehicle_state)
 
-        plt.clf()
-        plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], c='red', marker='.', label='Foreground point')
-        plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], c='gray', marker='.', label='Background point')
-        plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
-        plt.legend(loc='lower right')
-        # plt.fill(self.field.vertices[:, 0], self.field.vertices[:, 1], fc=(0,0,0,0), ec=(1.0, 0.37, 0.22, 0.5))
-        # for poly in self.field_elements:
-        #     plt.fill(poly.vertices[:,0], poly.vertices[:,1], fc=(1.0, 0.37, 0.22, 0.5))
-        plt.title("LIDAR Sweep Segmentation")
-        plt.xlabel("X (meters)")
-        plt.ylabel("Y (meters)")
-        plt.axis('equal')
-        plt.draw()
-        plt.pause(0.1)
+        # 4. Classification
+        self.classify(vehicle_state)
 
-        obstacles = self.cluster(world_frame_sweep, background_mask)
-        return pose, obstacles
+        # 5. Postprocess sweep
+        self.postprocess_objects(vehicle_state)
 
-    def parse_sweep(self, sweep):
+        self.visualize(vehicle_state)
+
+        return _, _
+
+    def filter_empty_rays(self, vehicle_state):
         """
-        Converts a list of dict with fields 'azimuth', 'elevation', and 'range' to numpy array
-        :param sweep: List of dict
-        :return: Nx3 numpy array
+        Filters the sweep contained in vehicle_state['lidarSweep'] as a list of dict to remove all rays with a negative
+        range, which represents a ray miss. The result is stored into vehicle_state['lidarSweepFiltered'] as a smaller
+        list of dict.
         """
+        sweep = vehicle_state['lidarSweep']
+        filtered_sweep = list()
+        for point in sweep:
+            if point['range'] > 0:
+                filtered_sweep.append(point)
+
+        vehicle_state['lidarSweepFiltered'] = filtered_sweep
+
+    def parse_sweep(self, vehicle_state):
+        """
+        Converts the sweep stored in vehicle_state['lidarSweepFiltered'] from a list of dict with fields 'azimuth',
+        'elevation', and 'range' to an Nx3 numpy array. Result is stored into vehicle_state['lidarSweepParsed'].
+        """
+        sweep = vehicle_state['lidarSweepFiltered']
         num_pts = len(sweep)
         parsed = np.empty((num_pts, 3))
         for i in range(num_pts):
-            az = sweep[i]['azimuth']
-            el = sweep[i]['elevation']
-            r = sweep[i]['range']
-            parsed[i][0] = az
-            parsed[i][1] = el
-            parsed[i][2] = r
-        return parsed
+            parsed[i][0] = sweep[i]['azimuth']
+            parsed[i][1] = sweep[i]['elevation']
+            parsed[i][2] = sweep[i]['range']
+        vehicle_state['lidarSweepParsed'] = parsed
 
-    def spherical_to_cartesian(self, spherical_sweep):
+    def spherical_to_cartesian(self, vehicle_state):
         """
-        Converts a sweep from spherical to Cartesian coordinates
-        :param spherical_sweep: Sweep in spherical coordinates Nx3 numpy array
-        :return: Sweep in Cartesian coordinates as an Nx2 numpy array
+        Converts the sweep stored in vehicle_state['lidarSweepParsed'] from an Nx3 numpy array of spherical coordinates
+        to an Nx2 array of Cartesian coordinates. Result is stored into vehicle_state['lidarSweepCartesian'].
         """
+        spherical_sweep = vehicle_state['lidarSweepParsed']
         azimuths = spherical_sweep[:, 0]
         elevations = spherical_sweep[:, 1]
         ranges = spherical_sweep[:, 2]
@@ -147,42 +155,45 @@ class Perception:
         cartesian_sweep[:, 0] = ranges * np.cos(azimuths)
         cartesian_sweep[:, 1] = ranges * np.sin(azimuths)
 
-        return cartesian_sweep
+        vehicle_state['lidarSweepCartesian'] = cartesian_sweep
 
     def localize(self, vehicle_state):
         """
-        Takes in the latest sensor data and determines our current position in the field
-        :param vehicle_state: Nx3 numpy array of floats in vehicle frame
+        Takes in the sweep stored in vehicle_state['lidarSweepCartesian'] and determines our current position in the
+        field. The result is stored into vehicle_state['x'], ['y'], and ['theta']
         :return: Vehicle's current pose as a dict and sweep in world frame as Nx3 numpy array of floats
         """
-        # Determine our current pose
+        pass  # TODO: Cheating for now, the sim has already provided us with x, y, theta
+
+    def vehicle_frame_to_world_frame(self, vehicle_state):
+        """
+        Converts the sweep stored in vehicle_state['lidarSweepCartesian'] as an Nx2 numpy array from vehicle frame to
+        world frame using vehicle_state['x'], ['y'], and ['theta']. Result is stored into
+        vehicle_state['lidarSweepWorld'] as an Nx2 numpy array.
+        """
         theta = -vehicle_state['theta']
         x = vehicle_state['x']
         y = vehicle_state['y']
 
-        # Transform the sweep from vehicle frame to global frame
         r = np.array([[np.cos(theta), -np.sin(theta)],
                       [np.sin(theta), np.cos(theta)]])
         t = np.array([x, y])
 
         sweep_vehicle_frame = vehicle_state['lidarSweepCartesian']
         sweep_world_frame = (sweep_vehicle_frame @ r) + t
+        vehicle_state['lidarSweepWorld'] = sweep_world_frame
 
-        pose = {
-            'x': x,
-            'y': y,
-            'theta': theta,
-        }
-
-        return pose, sweep_world_frame
-
-    def subtract_background(self, world_frame_sweep):
+    def subtract_background(self, vehicle_state):
         """
+        Takes in the sweep stored in vehicle_state['lidarSweepWorld'] as an Nx2 and creates a mask as an Nx1 array,
+        where each element is marked as either 0 for background point or 1 for foreground point. The result is stored
+        into vehicle_state['lidarSweepMask']
+
         Removes the points in the sweep corresponding to walls and other static obstacles
-        :param world_frame_sweep: Current sweep in world frame as an Nx2 array of floats
+        :param vehicle_state: Current sweep in world frame as an Nx2 array of floats
         :return: Same as input but with points corresponding to static objects removed
         """
-
+        world_frame_sweep = vehicle_state['lidarSweepWorld']
         background_mask = np.zeros(len(world_frame_sweep), dtype=int)
 
         for i, point in enumerate(world_frame_sweep):
@@ -198,16 +209,51 @@ class Perception:
             #     # background_subtracted_sweep.append(point)
             #     background_mask[i] = 1
 
-        return background_mask
+        vehicle_state['lidarSweepMask'] = background_mask
 
-    def cluster(self, world_frame_sweep, background_mask):
+    def cluster(self, vehicle_state):
         """
-        Clumps together clusters of points and forms a list of obstacles
-        :param world_frame_sweep: Sweep in world frame as Nx2 array of floats
-        :param background_mask:
-        :return: List of detected obstacles, their positions, and radii
+        Identifies clusters of foreground points in the sweep stored as an Nx2 numpy array in
+        vehicle_state['lidarSweepWorld'] using the background mask stored as an Nx1 numpy array in
+        vehicle_state['lidarSweepMask'], and marks each point with its associated cluster. The result is stored into
+        vehicle_state['lidarSweepMask']
         """
         pass
+
+    def classify(self, vehicle_state):
+        """
+        Classifies each cluster of points as either GAMEPIECE or ROBOT. The result is stored into
+        vehicle_state['classified'].
+        """
+        pass
+
+    def postprocess_objects(self, vehicle_state):
+        """
+        TBD.
+        """
+        pass
+
+    def visualize(self, vehicle_state):
+        mask0 = np.array(vehicle_state['lidarSweepMask'], dtype=bool)
+        mask1 = np.invert(mask0)
+
+        world_frame_sweep = vehicle_state['lidarSweepWorld']
+        vehicle_position = np.array([[vehicle_state['x'], vehicle_state['y']], ])
+
+        plt.clf()
+        plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], c='red', marker='.', label='Foreground point')
+        plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], c='gray', marker='.', label='Background point')
+        plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
+        # plt.fill(self.field.vertices[:, 0], self.field.vertices[:, 1], fc=(0,0,0,0), ec=(0.15, 0.65, 0.65, 0.8))
+        # for poly in self.field_elements:
+        #     plt.fill(poly.vertices[:,0], poly.vertices[:,1], fc=(0.15, 0.65, 0.65, 0.8))
+        plt.title("LIDAR Sweep Segmentation")
+        plt.xlabel("X (meters)")
+        plt.ylabel("Y (meters)")
+        plt.axis('equal')
+        plt.legend(loc='lower right')
+        plt.draw()
+        plt.pause(0.1)
 
 
 _ = '''
