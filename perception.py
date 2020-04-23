@@ -1,6 +1,7 @@
 #
 # Copyright (c) 2020 FRC Team 3260
 #
+from collections import defaultdict
 
 import numpy as np
 import numpy.ma as ma
@@ -194,12 +195,12 @@ class Perception:
         :return: Same as input but with points corresponding to static objects removed
         """
         world_frame_sweep = vehicle_state['lidarSweepWorld']
-        background_mask = np.zeros(len(world_frame_sweep), dtype=int)
+        background_mask = np.zeros(len(world_frame_sweep), dtype=bool)
 
         for i, point in enumerate(world_frame_sweep):
             if (self.field.point_in_convex_polygon(point) and not any(
-                    [fe.point_in_convex_polygon(point) for fe in self.field_elements])):
-                background_mask[i] = 1
+                    fe.point_in_convex_polygon(point) for fe in self.field_elements)):
+                background_mask[i] = True
 
             # if self.field.point_in_convex_polygon(point)
             # and not self.bottom_column.point_in_convex_polygon(point)
@@ -218,7 +219,25 @@ class Perception:
         vehicle_state['lidarSweepMask'], and marks each point with its associated cluster. The result is stored into
         vehicle_state['lidarSweepMask']
         """
-        pass
+        # {
+        #     (0,0) : list(),
+        #     (1,0) : list(),
+        #     (2,0) : list(),
+        # }
+
+        BIN_SIZE = 0.05
+
+        worldSweep = vehicle_state['lidarSweepWorld']
+        points = worldSweep[vehicle_state['lidarSweepMask']]
+
+        # Run through all points
+        buckets = defaultdict(list)
+        for point in points:
+            bucket = (point[0] // BIN_SIZE, point[1] // BIN_SIZE) # get coordinates from point
+            buckets[bucket].append(point)
+
+        print(buckets)
+        import ipdb; ipdb.set_trace()
 
     def classify(self, vehicle_state):
         """
