@@ -1,12 +1,13 @@
 #
 # Copyright (c) 2020 FRC Team 3260
 #
-from collections import defaultdict
 
+from collections import defaultdict
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 from geometry import Polygon
+from search import connected_components
 
 IN_TO_M = 0.0254
 
@@ -214,35 +215,35 @@ class Perception:
 
     def cluster(self, vehicle_state):
         """
-        Identifies clusters of foreground points in the sweep stored as an Nx2 numpy array in
-        vehicle_state['lidarSweepWorld'] using the background mask stored as an Nx1 numpy array in
-        vehicle_state['lidarSweepMask'], and marks each point with its associated cluster. The result is stored into
-        vehicle_state['lidarSweepMask']
+        Identifies clusters of foreground points in the sweep stored in vehicle_state['lidarSweepWorld'] as an Nx2 numpy
+        array using the background mask stored in vehicle_state['lidarSweepMask'] as an Nx1 numpy array and marks each
+        foreground point with its associated cluster. The result is stored into
+        vehicle_state['clusters'].
         """
-        # {
-        #     (0,0) : list(),
-        #     (1,0) : list(),
-        #     (2,0) : list(),
-        # }
 
-        BIN_SIZE = 0.05
+        # side length of buckets in meters
+        BIN_SIZE = 0.1
 
         worldSweep = vehicle_state['lidarSweepWorld']
-        points = worldSweep[vehicle_state['lidarSweepMask']]
+        foreground_points = worldSweep[vehicle_state['lidarSweepMask']]
 
-        # Run through all points
+        # Bucketize all points into a defaultdict of this form:
+        # buckets = {
+        #     (0,0) : list(... points ...),
+        #     (1,0) : list(... points ...),
+        #     (2,0) : list(... points ...),
+        # }
         buckets = defaultdict(list)
-        for point in points:
+        for point in foreground_points:
             bucket = (point[0] // BIN_SIZE, point[1] // BIN_SIZE) # get coordinates from point
             buckets[bucket].append(point)
 
-        print(buckets)
-        import ipdb; ipdb.set_trace()
+        vehicle_state['clusters'] = connected_components(buckets)
 
     def classify(self, vehicle_state):
         """
-        Classifies each cluster of points as either GAMEPIECE or ROBOT. The result is stored into
-        vehicle_state['classified'].
+        Classifies each cluster of points as either GAMEPIECE or ROBOT from vehicle_state['clusters']. The result is
+        stored into vehicle_state['classified'].
         """
         pass
 
@@ -257,11 +258,16 @@ class Perception:
         mask1 = np.invert(mask0)
 
         world_frame_sweep = vehicle_state['lidarSweepWorld']
+        clusters = vehicle_state['clusters']
         vehicle_position = np.array([[vehicle_state['x'], vehicle_state['y']], ])
 
         plt.clf()
-        plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], c='red', marker='.', label='Foreground point')
-        plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], c='gray', marker='.', label='Background point')
+        i = 0
+        for cluster in clusters:
+            plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', label=i)
+            i += 1
+        # plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], marker='.', label='Foreground point')
+        # plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], marker='.', label='Background point')
         plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
         # plt.fill(self.field.vertices[:, 0], self.field.vertices[:, 1], fc=(0,0,0,0), ec=(0.15, 0.65, 0.65, 0.8))
         # for poly in self.field_elements:
