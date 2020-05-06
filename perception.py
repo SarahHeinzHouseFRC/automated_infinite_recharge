@@ -7,7 +7,8 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 from geometry import Polygon
-from search import connected_components
+# import search
+from search import connected_components, ransac
 
 IN_TO_M = 0.0254
 
@@ -242,10 +243,24 @@ class Perception:
 
     def classify(self, vehicle_state):
         """
-        Classifies each cluster of points as either GAMEPIECE or ROBOT from vehicle_state['clusters']. The result is
-        stored into vehicle_state['classified'].
+        Classifies each cluster of points as either GAMEPIECE or ROBOT from vehicle_state['clusters'], which is an Nx2
+        array of points. The result is stored into vehicle_state['classes'] as an Nx1 array of ints, 1 for GAMEPIECE
+        or 2 for ROBOT.
         """
-        pass
+        classes = list()
+        for cluster in vehicle_state['clusters']:
+            if len(cluster) > 3:
+                result = ransac(cluster, 0.9)
+                if result is not None:
+                    # result is ball
+                    classes.append(1)
+                else:
+                    # robot!
+                    classes.append(2)
+            else:
+                classes.append(0)
+
+        vehicle_state['classes'] = classes
 
     def postprocess_objects(self, vehicle_state):
         """
@@ -261,10 +276,12 @@ class Perception:
         clusters = vehicle_state['clusters']
         vehicle_position = np.array([[vehicle_state['x'], vehicle_state['y']], ])
 
+        colors = ['r', 'b', 'g']
+
         plt.clf()
         i = 0
         for cluster in clusters:
-            plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', label=i)
+            plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', color=colors[vehicle_state['classes'][i]])
             i += 1
         # plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], marker='.', label='Foreground point')
         # plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], marker='.', label='Background point')
