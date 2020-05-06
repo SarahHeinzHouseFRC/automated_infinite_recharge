@@ -78,97 +78,78 @@ def connected_components(buckets):
     return new_clusters
 
 
-def ransac(points, precision):
+def ransac_circle_fit(points, consensus, tolerance, iterations):
     """
-    Takes points as an Nx2 array and returns whether or not the points fit a circle and the coordinates of the circle.
-    Result: tuple(x, y, radius) or None
+    Takes N points as an Nx2 array and returns the coordinates of a best-fit circle.
+    :param points: Nx2 numpy array of points
+    :param consensus: How much of a consensus is needed to declare success, 0 < consensus <= 1
+    :param tolerance: Tolerance to be declared an inlier of the circle
+    :param iterations: Max number of iterations to try
+    :returns: Circle as tuple(x, y, radius) or None
     """
-    for _ in range(20):
+
+    # We require at least 3 points to fit a circle
+    if len(points) < 3:
+        return None
+
+    np.random.seed(10)
+    for _ in range(iterations):
         # 1. Take a random sample of 3 points from this cluster
-        if(len(points) >= 3):
-            subset = np.random.choice(len(points), 3, replace=False)
-        else:
-            return None
+        random_sample = np.random.choice(len(points), 3, replace=False)
+
         # 2. Fit a circle to those points
-        fit_circle = make_circle(points.take(subset, axis=0))
+        fit_circle = make_circle(points[random_sample[0]], points[random_sample[1]], points[random_sample[2]])
 
         # 3. Check all other points in the cluster for consensus
-        inliers = 0
+        fit_circle_center = np.array(fit_circle[0:2])
+        fit_circle_radius = fit_circle[2]
+        num_inliers = 0
         for point in points:
-            if abs(7 - distance(point, fit_circle[0:2]) < 0.5):
-                inliers += 1
-        # 4. If we have a consensus (maybe 90%), then return out
-        if inliers/len(points) >= precision:
+            if abs(distance(point, fit_circle_center) - fit_circle_radius) <= tolerance:
+                num_inliers += 1
+
+        # 4. If we've reached a consensus, then return the circle we've found
+        if num_inliers / len(points) >= consensus:
             return fit_circle
     return None
 
 
-def distance(point1, point2):
+def distance(p1, p2):
     """
-    Takes 2 points as Nx2 arrays and returns the distance between them
+    Takes 2 points as 1x2 arrays and returns the Euclidean distance between them.
     """
-    return np.linalg.norm(point1 - point2)
+    return np.linalg.norm(p1 - p2)
 
-    #without numpy
-    # x_dis = abs(point1[0] - point2[0])
-    # y_dis = abs(point1[1] - point2[1])
-    # return sqrt((x_dis ** 2) + (y_dis ** 2))
 
-def make_circle(points):
+def make_circle(p1, p2, p3):
     """
-    Constructs a circle from 3 points. Takes a 3x2 numpy array of points and returns a tuple(x, y, radius).
+    Constructs a circle from 3 points.
+    Source: https://www.w3resource.com/python-exercises/basic/python-basic-1-exercise-39.php
+    :param p1, p2, p3: Three numpy arrays of shape (2,)
+    :return: Circle as tuple(x, y, radius)
     """
-    x1 = points[0,0]
-    x2 = points[1,0]
-    x3 = points[2,0]
-    y1 = points[0,1]
-    y2 = points[1,1]
-    y3 = points[2,1]
+    x1 = p1[0]
+    x2 = p2[0]
+    x3 = p3[0]
+    y1 = p1[1]
+    y2 = p2[1]
+    y3 = p3[1]
 
-    x12 = x1 - x2
-    x13 = x1 - x3
+    c = (x1 - x2) ** 2 + (y1 - y2) ** 2
+    a = (x2 - x3) ** 2 + (y2 - y3) ** 2
+    b = (x3 - x1) ** 2 + (y3 - y1) ** 2
+    s = 2 * (a * b + b * c + c * a) - (a * a + b * b + c * c)
+    s = -1e-5 if -1e5 < s < 0 else 1e-5 if 0 <= s < 1e-5 else s # Prevent divide by zero
+    px = (a * (b + c - a) * x1 + b * (c + a - b) * x2 + c * (a + b - c) * x3) / s
+    py = (a * (b + c - a) * y1 + b * (c + a - b) * y2 + c * (a + b - c) * y3) / s
+    ar = a ** 0.5
+    br = b ** 0.5
+    cr = c ** 0.5
+    den = ((ar + br + cr) * (-ar + br + cr) * (ar - br + cr) * (ar + br - cr))
+    den = -1e-5 if -1e5 < den < 0 else 1e-5 if 0 <= den < 1e-5 else den # Prevent divide by 0
+    r = ar * br * cr / den ** 0.5
 
-    y12 = y1 - y2
-    y13 = y1 - y3
-
-    y31 = y3 - y1
-    y21 = y2 - y1
-
-    x31 = x3 - x1
-    x21 = x2 - x1
-
-    # x1^2 - x3^2
-    sx13 = pow(x1, 2) - pow(x3, 2)
-
-    # y1^2 - y3^2
-    sy13 = pow(y1, 2) - pow(y3, 2)
-
-    sx21 = pow(x2, 2) - pow(x1, 2)
-    sy21 = pow(y2, 2) - pow(y1, 2)
-
-    f = (((sx13) * (x12) + (sy13) *
-          (x12) + (sx21) * (x13) +
-          (sy21) * (x13)) // (2 *
-          ((y31) * (x12) - (y21) * (x13))))
-
-    g = (((sx13) * (y12) + (sy13) * (y12) +
-          (sx21) * (y13) + (sy21) * (y13)) //
-          (2 * ((x31) * (y12) - (x21) * (y13))))
-
-    c = (-pow(x1, 2) - pow(y1, 2) -
-         2 * g * x1 - 2 * f * y1)
-
-    # eqn of circle be x^2 + y^2 + 2*g*x + 2*f*y + c = 0
-    # where centre is (h = -g, k = -f) and
-    # radius r as r^2 = h^2 + k^2 - c
-    h = -g
-    k = -f
-    sqr_of_r = h * h + k * k - c
-
-    # r is the radius
-    r = round(sqrt(sqr_of_r), 5)
-
-    return np.array([h,k,r])
+    return px, py, r
 
 
 def main():
@@ -180,13 +161,15 @@ def main():
     ccs = connected_components(buckets)
     assert len(ccs) == 2, "Wrong number of connected components found"
 
-    points = np.array([[-10,10], [0,20], [10,10]])
-    c = make_circle(points)
-    circle_artist = plt.Circle((c[0], c[1]), c[2], color=(1.0, 0.37, 0.22, 1.0))
-    fig = plt.gcf()
-    ax = fig.gca()
-    # ax.add_artist(circle_artist)
-    plt.plot(points, marker='o', linestyle='')
+    points = np.array([[-1.11, -1.60], [-1.11, -1.64], [-1.15, -1.70]])
+    circle = make_circle(points[0], points[1], points[2])
+    print(circle)
+    if circle is not None:
+        circle_artist = plt.Circle((circle[0], circle[1]), circle[2], color=(1.0, 0.37, 0.22, 1.0))
+        fig, ax = plt.subplots()
+        ax.add_artist(circle_artist)
+    plt.plot(points[:,0], points[:,1], marker='o', linestyle='')
+    plt.axis("equal")
     plt.show()
 
 

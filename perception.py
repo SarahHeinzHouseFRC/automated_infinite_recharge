@@ -2,13 +2,12 @@
 # Copyright (c) 2020 FRC Team 3260
 #
 
-from collections import defaultdict
 import numpy as np
-import numpy.ma as ma
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import algorithm as alg
+from collections import defaultdict
 from geometry import Polygon
-# import search
-from search import connected_components, ransac
 
 IN_TO_M = 0.0254
 
@@ -239,7 +238,7 @@ class Perception:
             bucket = (point[0] // BIN_SIZE, point[1] // BIN_SIZE) # get coordinates from point
             buckets[bucket].append(point)
 
-        vehicle_state['clusters'] = connected_components(buckets)
+        vehicle_state['clusters'] = alg.connected_components(buckets)
 
     def classify(self, vehicle_state):
         """
@@ -247,19 +246,14 @@ class Perception:
         array of points. The result is stored into vehicle_state['classes'] as an Nx1 array of ints, 1 for GAMEPIECE
         or 2 for ROBOT.
         """
+        clusters = vehicle_state['clusters']
         classes = list()
-        for cluster in vehicle_state['clusters']:
-            if len(cluster) > 3:
-                result = ransac(cluster, 0.9)
-                if result is not None:
-                    # result is ball
-                    classes.append(1)
-                else:
-                    # robot!
-                    classes.append(2)
+        for cluster in clusters:
+            circle = alg.ransac_circle_fit(cluster, consensus=0.99, tolerance=0.03, iterations=50)
+            if circle is not None and 3.45*IN_TO_M <= circle[2] <= 3.55*IN_TO_M: # Balls are 3.5" in radius
+                classes.append(circle)
             else:
-                classes.append(0)
-
+                classes.append(None)
         vehicle_state['classes'] = classes
 
     def postprocess_objects(self, vehicle_state):
@@ -269,27 +263,47 @@ class Perception:
         pass
 
     def visualize(self, vehicle_state):
+        plt.clf()
+        fig = plt.gcf()
+        ax = fig.gca()
+
+        # Plot vehicle position
+        vehicle_position = np.array([[vehicle_state['x'], vehicle_state['y']], ])
+        plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
+        plt.text(vehicle_state['x'], vehicle_state['y'] + 0.05, "Self", color='r', fontsize=10)
+
+        # Plot background subtraction
+        world_frame_sweep = vehicle_state['lidarSweepWorld']
         mask0 = np.array(vehicle_state['lidarSweepMask'], dtype=bool)
         mask1 = np.invert(mask0)
+        plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], marker='.', color=(0.15, 0.65, 0.65, 1.0), label='Foreground point')
+        plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], marker='.', color='gray', label='Background point')
 
-        world_frame_sweep = vehicle_state['lidarSweepWorld']
-        clusters = vehicle_state['clusters']
-        vehicle_position = np.array([[vehicle_state['x'], vehicle_state['y']], ])
-
-        colors = ['r', 'b', 'g']
-
-        plt.clf()
-        i = 0
-        for cluster in clusters:
-            plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', color=colors[vehicle_state['classes'][i]])
-            i += 1
-        # plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], marker='.', label='Foreground point')
-        # plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], marker='.', label='Background point')
-        plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
+        # Plot segmentation
         # plt.fill(self.field.vertices[:, 0], self.field.vertices[:, 1], fc=(0,0,0,0), ec=(0.15, 0.65, 0.65, 0.8))
         # for poly in self.field_elements:
         #     plt.fill(poly.vertices[:,0], poly.vertices[:,1], fc=(0.15, 0.65, 0.65, 0.8))
-        plt.title("LIDAR Sweep Segmentation")
+
+        # Plot clusters
+        # i = 0
+        # for cluster in vehicle_state['clusters']:
+        #     plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', label=i)
+        #     i += 1
+
+        # Plot classes
+        for c in vehicle_state['classes']:
+            if c is not None:
+                x = c[0]-c[2] - 0.05
+                y = c[1]-c[2] - 0.05
+                width = 2*c[2] + 0.1
+                height = 2*c[2] + 0.1
+                plt.text(x, y+height+0.05, "Ball", color='r', fontsize=10)
+                # circle = plt.Circle((c[0], c[1]), c[2], color=(0.75, 0.75, 0.0, 0.5))
+                # ax.add_patch(circle)
+                bbox = patches.Rectangle((x, y), width, height, linewidth=1, edgecolor='r', facecolor='none')
+                ax.add_patch(bbox)
+
+        plt.title("Team SHARP FRC 2020 Perception Stack")
         plt.xlabel("X (meters)")
         plt.ylabel("Y (meters)")
         plt.axis('equal')
