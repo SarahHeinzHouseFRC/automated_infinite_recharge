@@ -8,6 +8,15 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 
+def bounding_box(points):
+        """
+        Takes a list of points and returns a tuple (min_x, max_x, min_y, max_y)
+        """
+        min_x, min_y = np.min(points, axis=0)
+        max_x, max_y = np.max(points, axis=0)
+        return min_x, max_x, min_y, max_y
+
+
 class Cell:
     def __init__(self, bucket_id, points):
         self.x = bucket_id[0]

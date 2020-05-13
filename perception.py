@@ -113,7 +113,27 @@ class Perception:
 
         self.visualize(vehicle_state)
 
-        return _, _
+        """
+        Return pose as
+        {
+            'x': x,         # Meters
+            'y': y,         # Meters
+            'theta': theta, # Radians
+        }
+        Return obstacles as
+        {
+            'balls': list(),
+            'other': list()
+        }
+        """
+        pose = {
+            'x': vehicle_state['x'],
+            'y': vehicle_state['y'],
+            'theta': vehicle_state['theta'],
+        }
+        obstacles = vehicle_state['classes']
+
+        return pose, obstacles
 
     def filter_empty_rays(self, vehicle_state):
         """
@@ -247,14 +267,21 @@ class Perception:
         or 2 for ROBOT.
         """
         clusters = vehicle_state['clusters']
-        classes = list()
+        balls = list()
+        other = list()
+
         for cluster in clusters:
             circle = alg.ransac_circle_fit(cluster, consensus=0.99, tolerance=0.03, iterations=50)
             if circle is not None and 3.45*IN_TO_M <= circle[2] <= 3.55*IN_TO_M: # Balls are 3.5" in radius
-                classes.append(circle)
+                balls.append(circle)
             else:
-                classes.append(None)
-        vehicle_state['classes'] = classes
+                # Construct a bounding box and put into other list
+                other.append(alg.bounding_box(cluster))
+
+        vehicle_state['classes'] = {
+            'balls' : balls,
+            'others' : other
+        }
 
     def postprocess_objects(self, vehicle_state):
         """
@@ -268,8 +295,10 @@ class Perception:
         ax = fig.gca()
 
         # Plot vehicle position
-        vehicle_position = np.array([[vehicle_state['x'], vehicle_state['y']], ])
-        plt.plot(vehicle_position[:, 0], vehicle_position[:, 1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
+        x = vehicle_state['x']
+        y = vehicle_state['y']
+        vehicle_position = np.array([x, y])
+        plt.plot(vehicle_position[0], vehicle_position[1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
         plt.text(vehicle_state['x'], vehicle_state['y'] + 0.05, "Self", color='r', fontsize=10)
 
         # Plot background subtraction
@@ -290,8 +319,18 @@ class Perception:
         #     plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', label=i)
         #     i += 1
 
+        # Plot the goal
+        min_dist = 1e5
+        for ball in vehicle_state['classes']['balls']:
+            curr_dist = alg.distance(np.array([ball[0], ball[1]]), np.array([x, y]))
+            if curr_dist < min_dist:
+                goal_x, goal_y = np.array([ball[0]-0.25, ball[1]-0.25])
+        plt.text(goal_x, goal_y + 0.5 + 0.05, "Goal", color='g', fontsize=10)
+        bbox = patches.Rectangle((goal_x, goal_y), 0.5, 0.5, linewidth=1, edgecolor='g', facecolor='none')
+        ax.add_patch(bbox)
+
         # Plot classes
-        for c in vehicle_state['classes']:
+        for c in vehicle_state['classes']['balls']:
             if c is not None:
                 x = c[0]-c[2] - 0.05
                 y = c[1]-c[2] - 0.05
