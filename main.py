@@ -31,9 +31,9 @@ def main():
     try:
         while True:
             if len(comms.vehicle_state["lidarSweep"]) > 0:
-                pose, obstacles = perception.run(comms.vehicle_state)
-                waypoint = planning.run(pose, obstacles)
-                controls.run(pose, waypoint, comms.vehicle_commands)
+                world_state = perception.run(comms.vehicle_state)
+                plan_state = planning.run(world_state)
+                controls.run(plan_state, comms.vehicle_commands)
     except KeyboardInterrupt:
         pass
 

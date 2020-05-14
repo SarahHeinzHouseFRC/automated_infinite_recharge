@@ -94,7 +94,7 @@ def ransac_circle_fit(points, consensus, tolerance, iterations):
     :param consensus: How much of a consensus is needed to declare success, 0 < consensus <= 1
     :param tolerance: Tolerance to be declared an inlier of the circle
     :param iterations: Max number of iterations to try
-    :returns: Circle as tuple(x, y, radius) or None
+    :returns: Circle as tuple(tuple(x, y), radius) or None
     """
 
     # We require at least 3 points to fit a circle
@@ -110,11 +110,11 @@ def ransac_circle_fit(points, consensus, tolerance, iterations):
         fit_circle = make_circle(points[random_sample[0]], points[random_sample[1]], points[random_sample[2]])
 
         # 3. Check all other points in the cluster for consensus
-        fit_circle_center = np.array(fit_circle[0:2])
-        fit_circle_radius = fit_circle[2]
+        fit_circle_center = fit_circle[0]
+        fit_circle_radius = fit_circle[1]
         num_inliers = 0
         for point in points:
-            if abs(distance(point, fit_circle_center) - fit_circle_radius) <= tolerance:
+            if abs(dist(point, fit_circle_center) - fit_circle_radius) <= tolerance:
                 num_inliers += 1
 
         # 4. If we've reached a consensus, then return the circle we've found
@@ -123,19 +123,21 @@ def ransac_circle_fit(points, consensus, tolerance, iterations):
     return None
 
 
-def distance(p1, p2):
+def dist(p1, p2):
     """
-    Takes 2 points as 1x2 arrays and returns the Euclidean distance between them.
+    Takes 2 points as array-like and returns the Euclidean distance between them.
     """
-    return np.linalg.norm(p1 - p2)
+    x = p2[0] - p1[0]
+    y = p2[1] - p1[1]
+    return np.linalg.norm([x, y])
 
 
 def make_circle(p1, p2, p3):
     """
     Constructs a circle from 3 points.
     Source: https://www.w3resource.com/python-exercises/basic/python-basic-1-exercise-39.php
-    :param p1, p2, p3: Three numpy arrays of shape (2,)
-    :return: Circle as tuple(x, y, radius)
+    :param p1, p2, p3: Three 2D points as numpy arrays of shape (2,)
+    :return: Circle as tuple(tuple(x, y), radius)
     """
     x1 = p1[0]
     x2 = p2[0]
@@ -158,7 +160,7 @@ def make_circle(p1, p2, p3):
     den = -1e-5 if -1e5 < den < 0 else 1e-5 if 0 <= den < 1e-5 else den # Prevent divide by 0
     r = ar * br * cr / den ** 0.5
 
-    return px, py, r
+    return (px, py), r
 
 
 def main():

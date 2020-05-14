@@ -108,32 +108,22 @@ class Perception:
         # 4. Classification
         self.classify(vehicle_state)
 
-        # 5. Postprocess sweep
-        self.postprocess_objects(vehicle_state)
-
-        self.visualize(vehicle_state)
+        # self.visualize(vehicle_state)
 
         """
-        Return pose as
-        {
-            'x': x,         # Meters
-            'y': y,         # Meters
-            'theta': theta, # Radians
-        }
+        Return pose as ((x, y), theta)
         Return obstacles as
         {
             'balls': list(),
-            'other': list()
+            'others': list()
         }
         """
-        pose = {
-            'x': vehicle_state['x'],
-            'y': vehicle_state['y'],
-            'theta': vehicle_state['theta'],
+        world_state = {
+            'pose': ((vehicle_state['x'], vehicle_state['y']), vehicle_state['theta']),
+            'obstacles': vehicle_state['classes']
         }
-        obstacles = vehicle_state['classes']
 
-        return pose, obstacles
+        return world_state
 
     def filter_empty_rays(self, vehicle_state):
         """
@@ -272,22 +262,16 @@ class Perception:
 
         for cluster in clusters:
             circle = alg.ransac_circle_fit(cluster, consensus=0.99, tolerance=0.03, iterations=50)
-            if circle is not None and 3.45*IN_TO_M <= circle[2] <= 3.55*IN_TO_M: # Balls are 3.5" in radius
+            if circle is not None and 3.45*IN_TO_M <= circle[1] <= 3.55*IN_TO_M: # Balls are 3.5" in radius
                 balls.append(circle)
             else:
                 # Construct a bounding box and put into other list
                 other.append(alg.bounding_box(cluster))
 
         vehicle_state['classes'] = {
-            'balls' : balls,
-            'others' : other
+            'balls': balls,
+            'others': other
         }
-
-    def postprocess_objects(self, vehicle_state):
-        """
-        TBD.
-        """
-        pass
 
     def visualize(self, vehicle_state):
         plt.clf()
@@ -319,27 +303,19 @@ class Perception:
         #     plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', label=i)
         #     i += 1
 
-        # Plot the goal
-        min_dist = 1e5
-        for ball in vehicle_state['classes']['balls']:
-            curr_dist = alg.distance(np.array([ball[0], ball[1]]), np.array([x, y]))
-            if curr_dist < min_dist:
-                goal_x, goal_y = np.array([ball[0]-0.25, ball[1]-0.25])
-        plt.text(goal_x, goal_y + 0.5 + 0.05, "Goal", color='g', fontsize=10)
-        bbox = patches.Rectangle((goal_x, goal_y), 0.5, 0.5, linewidth=1, edgecolor='g', facecolor='none')
-        ax.add_patch(bbox)
-
         # Plot classes
-        for c in vehicle_state['classes']['balls']:
-            if c is not None:
-                x = c[0]-c[2] - 0.05
-                y = c[1]-c[2] - 0.05
-                width = 2*c[2] + 0.1
-                height = 2*c[2] + 0.1
-                plt.text(x, y+height+0.05, "Ball", color='r', fontsize=10)
-                # circle = plt.Circle((c[0], c[1]), c[2], color=(0.75, 0.75, 0.0, 0.5))
+        for ball in vehicle_state['classes']['balls']:
+            if ball is not None:
+                ball_x, ball_y = ball[0]
+                ball_radius = ball[1]
+                box_x = ball_x - ball_radius - 0.05
+                box_y = ball_y - ball_radius - 0.05
+                box_width = 2*ball_radius + 0.1
+                box_height = 2*ball_radius + 0.1
+                plt.text(box_x, box_y+box_height+0.05, "Ball", color='r', fontsize=10)
+                # circle = plt.Circle((ball[0]), ball[1], color=(0.75, 0.75, 0.0, 0.5))
                 # ax.add_patch(circle)
-                bbox = patches.Rectangle((x, y), width, height, linewidth=1, edgecolor='r', facecolor='none')
+                bbox = patches.Rectangle((box_x, box_y), box_width, box_height, linewidth=1, edgecolor='r', facecolor='none')
                 ax.add_patch(bbox)
 
         plt.title("Team SHARP FRC 2020 Perception Stack")
