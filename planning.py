@@ -80,7 +80,7 @@ class Planning:
         # 2. Move towards it if there is a nearest ball (using A*)
         self.motion_planning(world_state)
 
-        self.visualize(world_state)
+        # self.visualize(world_state)
 
         plan_state = {
             'pose': world_state['pose'],

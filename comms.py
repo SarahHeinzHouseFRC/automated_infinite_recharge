@@ -22,7 +22,8 @@ class CommsThread(Thread):
             "tubeMotorSpeed": 0,  # Tube motor speed (-512 - 512)
             "timerStartStop": 0,  # Timer start/stop (0 or 1)
             "reset": 0,  # Reset (0 or 1)
-            "outtake": 0  # Outtake (0 or 1)
+            "outtake": 0,  # Outtake (0 or 1)
+            "draw": []  # List of shapes to be drawn
         }
         self.vehicle_state = {
             "x": 0,  # Position (meters)

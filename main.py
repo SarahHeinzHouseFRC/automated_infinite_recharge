@@ -8,6 +8,7 @@ from comms import *
 from perception import Perception
 from planning import Planning
 from controls import Controls
+from visualize import Visualize
 
 
 def main():
@@ -27,6 +28,7 @@ def main():
     perception = Perception()
     planning = Planning()
     controls = Controls()
+    visualize = Visualize()
 
     try:
         while True:
@@ -34,6 +36,8 @@ def main():
                 world_state = perception.run(comms.vehicle_state)
                 plan_state = planning.run(world_state)
                 controls.run(plan_state, comms.vehicle_commands)
+
+                comms.vehicle_commands['draw'] = visualize.run(world_state, plan_state)
     except KeyboardInterrupt:
         pass
 
