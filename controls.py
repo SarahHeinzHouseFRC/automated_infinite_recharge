@@ -25,8 +25,12 @@ class Controls:
         left_drive_motor_speed = 25
         right_drive_motor_speed = 25
 
-        if abs(curr_heading - desired_heading) >= 0.25:
-            left_drive_motor_speed = -left_drive_motor_speed
+        margin = 0.25
+        scale = 20
+
+        if abs(desired_heading - curr_heading) >= margin:
+            left_drive_motor_speed = int((curr_heading - desired_heading) * scale)
+            right_drive_motor_speed = int((desired_heading - curr_heading) * scale)
 
         vehicle_commands["leftDriveMotorSpeed"] = left_drive_motor_speed
         vehicle_commands["rightDriveMotorSpeed"] = right_drive_motor_speed
