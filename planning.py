@@ -13,6 +13,7 @@ IN_TO_M = 0.0254
 class Planning:
     def __init__(self):
         plt.ion()
+        self.prev_obstacles = None
 
         self.outer_wall = IN_TO_M * np.array([
             [161.81, 288.58],
@@ -93,6 +94,17 @@ class Planning:
         Identifies a goal state and places it into world_state['goal'].
         """
         start = world_state['pose'][0]  # Our current (x,y)
+
+        # 1. Add some object persistence so balls inside the LIDAR deadzone don't keep going out of view
+        deadzone_radius = 0.85
+        if self.prev_obstacles is not None:
+            # Run through and recover any balls within the deadzone and place them into world_state
+            for ball in self.prev_obstacles:
+                if 0.5 < alg.dist(start, ball[0]) < deadzone_radius:
+                    world_state['obstacles']['balls'].append(ball)
+        self.prev_obstacles = world_state['obstacles']['balls']
+
+        # 2. Find the closest ball
         min_dist = np.inf
         goal = None
         for ball in world_state['obstacles']['balls']:
