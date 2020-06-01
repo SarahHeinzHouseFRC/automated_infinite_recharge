@@ -258,19 +258,19 @@ class Perception:
         """
         clusters = vehicle_state['clusters']
         balls = list()
-        other = list()
+        others = list()
 
         for cluster in clusters:
             circle = alg.ransac_circle_fit(cluster, consensus=0.99, tolerance=0.03, iterations=50)
             if circle is not None and 3.45*IN_TO_M <= circle[1] <= 3.55*IN_TO_M: # Balls are 3.5" in radius
                 balls.append(circle)
             else:
-                # Construct a bounding box and put into other list
-                other.append(alg.bounding_box(cluster))
+                # Construct a bounding box and put into others list
+                others.append(alg.bounding_box(cluster))
 
         vehicle_state['classes'] = {
             'balls': balls,
-            'others': other
+            'others': others
         }
 
     def visualize(self, vehicle_state):
