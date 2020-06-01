@@ -8,6 +8,54 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 
+class Node:
+    def __init__(self, x, y, occupied):
+        # x and y coordinates of node
+        self.x = x
+        self.y = y
+        # nodes it is connected to
+        self.neighbors = set ()
+        self.parent = None
+        self.occupied = occupied
+
+
+def make_graph_from_rect(length, width, cell_resolution):
+    """
+    Returns a list of nodes comprising this rectangular area
+    """
+    num_cols = length // cell_resolution
+    num_rows = width // cell_resolution
+    graph = np.ndarray((num_cols, num_rows), dtype=Node)
+
+    # 1. Create all the nodes
+    for x in range(num_cols):
+        for y in range(num_rows):
+            graph[x][y] = Node(x, y, False)
+    # 2. Connect all the neighbors
+    min_col = 0
+    max_col = num_cols-1
+    min_row = 0
+    max_row = num_rows-1
+    for x in range(num_cols):
+        for y in range(num_rows):
+            node = graph[x][y]
+            if x > min_col:
+                node.neighbors.add(graph[x-1][y])
+            if x < max_col-1:
+                node.neighbors.add(graph[x+1][y])
+            if y > min_col:
+                node.neighbors.add(graph[x][y-1])
+            if y < max_col-1:
+                node.neighbors.add(graph[x][y+1])
+    # 3. Mark each node as occupied/unoccupied
+
+    return graph
+
+# def a_star(position, grid, goal):
+#     cell_parents = {}
+#     queue = []
+#     while len(queue) > 0 and :
+
 def bounding_box(points):
         """
         Takes a list of points and returns a tuple (min_x, max_x, min_y, max_y)
