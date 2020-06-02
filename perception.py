@@ -283,7 +283,7 @@ class Perception:
         y = vehicle_state['y']
         vehicle_position = np.array([x, y])
         plt.plot(vehicle_position[0], vehicle_position[1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
-        plt.text(vehicle_state['x'], vehicle_state['y'] + 0.05, "Self", color='r', fontsize=10)
+        plt.text(vehicle_state['x'], vehicle_state['y'] + 0.05, 'Self', color='r', fontsize=10)
 
         # Plot background subtraction
         world_frame_sweep = vehicle_state['lidarSweepWorld']
@@ -312,15 +312,15 @@ class Perception:
                 box_y = ball_y - ball_radius - 0.05
                 box_width = 2*ball_radius + 0.1
                 box_height = 2*ball_radius + 0.1
-                plt.text(box_x, box_y+box_height+0.05, "Ball", color='r', fontsize=10)
+                plt.text(box_x, box_y+box_height+0.05, 'Ball', color='r', fontsize=10)
                 # circle = plt.Circle((ball[0]), ball[1], color=(0.75, 0.75, 0.0, 0.5))
                 # ax.add_patch(circle)
                 bbox = patches.Rectangle((box_x, box_y), box_width, box_height, linewidth=1, edgecolor='r', facecolor='none')
                 ax.add_patch(bbox)
 
-        plt.title("Team SHARP FRC 2020 Perception Stack")
-        plt.xlabel("X (meters)")
-        plt.ylabel("Y (meters)")
+        plt.title('Team SHARP FRC 2020 Perception Stack')
+        plt.xlabel('X (meters)')
+        plt.ylabel('Y (meters)')
         plt.axis('equal')
         plt.legend(loc='lower right')
         plt.draw()

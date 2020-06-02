@@ -14,24 +14,25 @@ class CommsThread(Thread):
         self.verbose = verbose
         self.comms = Comms(comms_config)
         self.vehicle_commands = {
-            "leftDriveMotorSpeed": 0,  # Left drive motor speed (-512 - 512)
-            "rightDriveMotorSpeed": 0,  # Right drive motor speed (-512 - 512)
-            "intakeCenterMotorSpeed": 0,  # Intake center motor speed (-512 - 512)
-            "intakeLeftMotorSpeed": 0,  # Intake left motor speed (-512 - 512)
-            "intakeRightMotorSpeed": 0,  # Intake right motor speed (-512 - 512)
-            "tubeMotorSpeed": 0,  # Tube motor speed (-512 - 512)
-            "timerStartStop": 0,  # Timer start/stop (0 or 1)
-            "reset": 0,  # Reset (0 or 1)
-            "outtake": 0,  # Outtake (0 or 1)
-            "draw": []  # List of shapes to be drawn
+            'leftDriveMotorSpeed': 0,  # Left drive motor speed (-512 - 512)
+            'rightDriveMotorSpeed': 0,  # Right drive motor speed (-512 - 512)
+            'intakeCenterMotorSpeed': 0,  # Intake center motor speed (-512 - 512)
+            'intakeLeftMotorSpeed': 0,  # Intake left motor speed (-512 - 512)
+            'intakeRightMotorSpeed': 0,  # Intake right motor speed (-512 - 512)
+            'tubeMotorSpeed': 0,  # Tube motor speed (-512 - 512)
+            'timerStartStop': 0,  # Timer start/stop (0 or 1)
+            'reset': 0,  # Reset (0 or 1)
+            'outtake': 0,  # Outtake (0 or 1)
+            'draw': []  # List of shapes to be drawn
         }
         self.vehicle_state = {
-            "x": 0,  # Position (meters)
-            "y": 0,  # Position (meters)
-            "theta": 0,  # Heading (rads, not wrapped)
-            "leftDriveEncoder": 0,  # Left drive encoder ticks (0 - 1024)
-            "rightDriveEncoder": 0,  # Right drive encoder ticks (0 - 1024)
-            "lidarSweep": []  # LIDAR sweep
+            'x': 0,  # Position (meters)
+            'y': 0,  # Position (meters)
+            'theta': 0,  # Heading (rads, not wrapped)
+            'leftDriveEncoder': 0,  # Left drive encoder ticks (0 - 1024)
+            'rightDriveEncoder': 0,  # Right drive encoder ticks (0 - 1024)
+            'ingestedBalls': 0,  # Number of ingested balls (0+)
+            'lidarSweep': []  # LIDAR sweep
         }
 
     def run(self):
@@ -40,14 +41,14 @@ class CommsThread(Thread):
             tx_msg = json.dumps(self.vehicle_commands)
             self.comms.tx(tx_msg)
             if self.verbose:
-                print("Sent: ", tx_msg)
+                print('Sent: ', tx_msg)
 
             # Receive sensor state
             rx_msg = self.comms.rx()
             if rx_msg is not None:
                 self.vehicle_state = json.loads(rx_msg)
                 if self.verbose:
-                    print("Received: ", rx_msg)
+                    print('Received: ', rx_msg)
 
             # Sleep for safety
             time.sleep(0.01)

@@ -79,24 +79,24 @@ class Controls:
             left_drive_motor_speed = int(self.pid_control_left.run(curr_heading, desired_heading, curr_time))
             right_drive_motor_speed = -int(self.pid_control_right.run(curr_heading, desired_heading, curr_time))
 
-        vehicle_commands["leftDriveMotorSpeed"] = left_drive_motor_speed
-        vehicle_commands["rightDriveMotorSpeed"] = right_drive_motor_speed
-        vehicle_commands["intakeCenterMotorSpeed"] = 512
-        vehicle_commands["intakeLeftMotorSpeed"] = 512
-        vehicle_commands["intakeRightMotorSpeed"] = 512
+        vehicle_commands['leftDriveMotorSpeed'] = left_drive_motor_speed
+        vehicle_commands['rightDriveMotorSpeed'] = right_drive_motor_speed
+        vehicle_commands['intakeCenterMotorSpeed'] = 512
+        vehicle_commands['intakeLeftMotorSpeed'] = 512
+        vehicle_commands['intakeRightMotorSpeed'] = 512
 
         """
-        Commands dict looks something like this:
+        Commands dict looks like this:
         vehicle_commands = {
-            "leftDriveMotorSpeed": 0,  # Left drive motor speed (-512 - 512)
-            "rightDriveMotorSpeed": 0,  # Right drive motor speed (-512 - 512)
-            "intakeCenterMotorSpeed": 0,  # Intake center motor speed (-512 - 512)
-            "intakeLeftMotorSpeed": 0,  # Intake left motor speed (-512 - 512)
-            "intakeRightMotorSpeed": 0,  # Intake right motor speed (-512 - 512)
-            "tubeMotorSpeed": 0,  # Tube motor speed (-512 - 512)
-            "timerStartStop": 0,  # Timer start/stop (0 or 1)
-            "reset": 0,  # Reset (0 or 1)
-            "outtake": 0  # Outtake (0 or 1)
-            "draw": []  # List of shapes to draw
+            'leftDriveMotorSpeed': 0,  # Left drive motor speed (-512 - 512)
+            'rightDriveMotorSpeed': 0,  # Right drive motor speed (-512 - 512)
+            'intakeCenterMotorSpeed': 0,  # Intake center motor speed (-512 - 512)
+            'intakeLeftMotorSpeed': 0,  # Intake left motor speed (-512 - 512)
+            'intakeRightMotorSpeed': 0,  # Intake right motor speed (-512 - 512)
+            'tubeMotorSpeed': 0,  # Tube motor speed (-512 - 512)
+            'timerStartStop': 0,  # Timer start/stop (0 or 1)
+            'reset': 0,  # Reset (0 or 1)
+            'outtake': 0  # Outtake (0 or 1)
+            'draw': []  # List of shapes to draw
         }
         """

@@ -44,11 +44,11 @@ def main():
 
     # Display the polygon and points
     plt.fill(poly.vertices[:,0], poly.vertices[:,1], facecolor=(0.15, 0.65, 0.65, 0.2), edgecolor=(0.15, 0.65, 0.65, 1.0), linewidth=1)
-    plt.plot(points[:,0], points[:,1], color=(1.0, 0.37, 0.22, 1.0), marker="o", linestyle='')
-    plt.axis("equal")
-    plt.title("Point in Polygon Test")
-    plt.xlabel("X (meters)")
-    plt.ylabel("Y (meters)")
+    plt.plot(points[:,0], points[:,1], color=(1.0, 0.37, 0.22, 1.0), marker='o', linestyle='')
+    plt.axis('equal')
+    plt.title('Point in Polygon Test')
+    plt.xlabel('X (meters)')
+    plt.ylabel('Y (meters)')
     plt.show()
 
 

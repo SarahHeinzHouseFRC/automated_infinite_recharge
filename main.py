@@ -13,10 +13,10 @@ from visualize import Visualize
 
 def main():
     comms_config = {
-        "rx_ip": "127.0.0.1",
-        "rx_port": 6000,
-        "tx_ip": "127.0.0.1",
-        "tx_port": 8000
+        'rx_ip': '127.0.0.1',
+        'rx_port': 6000,
+        'tx_ip': '127.0.0.1',
+        'tx_port': 8000
     }
 
     # Launch comms in background thread
@@ -32,7 +32,7 @@ def main():
 
     try:
         while True:
-            if len(comms.vehicle_state["lidarSweep"]) > 0:
+            if len(comms.vehicle_state['lidarSweep']) > 0:
                 world_state = perception.run(comms.vehicle_state)
                 plan_state = planning.run(world_state)
                 controls.run(plan_state, comms.vehicle_commands)

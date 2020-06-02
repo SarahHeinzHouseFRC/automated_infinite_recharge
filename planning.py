@@ -133,7 +133,7 @@ class Planning:
         vehicle_x, vehicle_y = world_state['pose'][0]
         vehicle_position = np.array((vehicle_x, vehicle_y))
         plt.plot(vehicle_position[0], vehicle_position[1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
-        plt.text(vehicle_x, vehicle_y + 0.05, "Self", color='r', fontsize=10)
+        plt.text(vehicle_x, vehicle_y + 0.05, 'Self', color='r', fontsize=10)
 
         # Plot obstacles
         for ball in world_state['obstacles']['balls']:
@@ -145,28 +145,28 @@ class Planning:
             box_height = 2 * ball_radius + 0.1
             bbox = patches.Rectangle((box_x, box_y), box_width, box_height, linewidth=1, edgecolor='r', facecolor='none')
             ax.add_patch(bbox)
-            plt.text(box_x, box_y + box_height + 0.05, "Ball", color='r', fontsize=10)
+            plt.text(box_x, box_y + box_height + 0.05, 'Ball', color='r', fontsize=10)
         for perception_object in world_state['obstacles']['others']:
             min_x, max_x, min_y, max_y = perception_object
             width = max_x - min_x
             height = max_y - min_y
             bbox = patches.Rectangle((min_x, min_y), width, height, linewidth=1, edgecolor='b', facecolor='none')
             ax.add_patch(bbox)
-            plt.text(min_x, min_y + height + 0.05, "Other", color='b', fontsize=10)
+            plt.text(min_x, min_y + height + 0.05, 'Other', color='b', fontsize=10)
 
         # Plot goal
         if world_state['goal'] is not None:
             goal_x, goal_y = world_state['goal']
             plt.plot(goal_x, goal_y, color='g', marker='.', linestyle='')
-            plt.text(goal_x, goal_y + 0.05, "Goal", color='g', fontsize=10)
+            plt.text(goal_x, goal_y + 0.05, 'Goal', color='g', fontsize=10)
 
             x = [vehicle_x, goal_x]
             y = [vehicle_y, goal_y]
             plt.plot(x, y, color='g')
 
-        plt.title("Team SHARP FRC 2020 Planning Stack")
-        plt.xlabel("X (meters)")
-        plt.ylabel("Y (meters)")
+        plt.title('Team SHARP FRC 2020 Planning Stack')
+        plt.xlabel('X (meters)')
+        plt.ylabel('Y (meters)')
         plt.axis('equal')
         plt.draw()
         plt.pause(0.1)

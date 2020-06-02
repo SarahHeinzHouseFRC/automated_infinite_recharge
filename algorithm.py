@@ -219,7 +219,7 @@ def main():
     buckets[(1,1)] = [[2,2], [2,2], [2,2], [2,2]]
     buckets[(10,10)] = [[3,3], [3,3], [3,3], [3,3]]
     ccs = connected_components(buckets)
-    assert len(ccs) == 2, "Wrong number of connected components found"
+    assert len(ccs) == 2, 'Wrong number of connected components found'
 
     points = np.array([[-1.11, -1.60], [-1.11, -1.64], [-1.15, -1.70]])
     circle = make_circle(points[0], points[1], points[2])
@@ -229,7 +229,7 @@ def main():
         fig, ax = plt.subplots()
         ax.add_artist(circle_artist)
     plt.plot(points[:,0], points[:,1], marker='o', linestyle='')
-    plt.axis("equal")
+    plt.axis('equal')
     plt.show()
 
 
