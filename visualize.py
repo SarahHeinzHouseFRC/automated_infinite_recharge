@@ -48,16 +48,18 @@ class Visualize:
                 'shape': 'line',
                 'text': 'path',
                 'color': 'green',
-                'vertices': [
-                    {
-                        'x': world_state['pose'][0][0],
-                        'y': world_state['pose'][0][1],
-                    },
-                    {
-                        'x': plan_state['trajectory'][0],
-                        'y': plan_state['trajectory'][1],
-                    }
-                ]
+                'vertices': [{'x': point[0], 'y': point[1]} for point in plan_state['trajectory']]
             })
+
+        # Draw grid
+        draw.append({
+                'shape': 'grid',
+                'text': 'grid1',
+                'color': 'yellow',
+                'cols': 20,
+                'rows': 20,
+                'cellSize': 10,
+                'occupancy': [1, 0, 1, 1]
+        })
 
         return draw

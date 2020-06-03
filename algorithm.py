@@ -9,52 +9,131 @@ import matplotlib.pyplot as plt
 
 
 class Node:
-    def __init__(self, x, y, occupied):
+    def __init__(self, position):
+        """
+        :param position: Node's position as tuple(x, y)
+        """
         # x and y coordinates of node
-        self.x = x
-        self.y = y
+        self.position = position
         # nodes it is connected to
         self.neighbors = set ()
         self.parent = None
-        self.occupied = occupied
+        self.occupied = False
 
 
-def make_graph_from_rect(length, width, cell_resolution):
+class Grid:
+    def __init__(self, width, height, cell_resolution, origin):
+        """
+        Constructs a list of nodes comprising this rectangular area.
+        Assumes cell_resolution divides evenly into length and width
+        :param width: Width of the grid in meters
+        :param height: Height of the grid in meters
+        :param cell_resolution: Width and height of a single cell
+        :param origin: Position of grid center in meters as tuple(x, y)
+        """
+
+        # store the resolution of each cell for marking cells later
+        self.cell_resolution = cell_resolution
+        self.origin = origin
+        self.num_cols = int(width // self.cell_resolution)
+        self.num_rows = int(height // self.cell_resolution)
+        self.grid = np.ndarray((self.num_cols, self.num_rows), dtype=Node)
+
+        # 1. Create all the nodes
+        for x in range(self.num_cols):
+            for y in range(self.num_rows):
+                self.grid[x][y] = Node((x, y))
+
+        # 2. Connect all the neighbors
+        min_col = 0
+        max_col = self.num_cols-1
+        min_row = 0
+        max_row = self.num_rows-1
+        for x in range(self.num_cols):
+            for y in range(self.num_rows):
+                node = self.grid[x][y]
+                if x > min_col:
+                    node.neighbors.add(self.grid[x-1][y])
+                if x < max_col-1:
+                    node.neighbors.add(self.grid[x+1][y])
+                if y > min_col:
+                    node.neighbors.add(self.grid[x][y-1])
+                if y < max_col-1:
+                    node.neighbors.add(self.grid[x][y+1])
+
+    def insert_obstacles(self, obstacles):
+        """
+        Find the grid cells corresponding to each obstacle and marks them as occupied.
+        :param obstacles: List of rectangular obstacles where each obstacle is ((min_x, min_y), (max_x, max_y))
+        """
+        for ((min_x, min_y), (max_x, max_y)) in obstacles:
+            min_col = int((min_x + self.origin[0]) // self.cell_resolution)
+            max_col = int((max_x + self.origin[0]) // self.cell_resolution)
+            min_row = int((min_y + self.origin[1]) // self.cell_resolution)
+            max_row = int((max_y + self.origin[1]) // self.cell_resolution)
+
+            for col in range(min_col, max_col):
+                for row in range(min_row, max_row):
+                    self.grid[col][row].occupied = True
+
+    def clear(self):
+        for row in self.grid:
+            for cell in row:
+                cell.occupied = False
+
+    def get_cell(self, point):
+        """
+        Queries the grid to return the cell at the given point
+        :param point: A point as tuple(x, y)
+        :return: The node corresponding to the given point
+        """
+        col = int((point[0] + self.origin[0]) // self.cell_resolution)
+        row = int((point[1] + self.origin[1]) // self.cell_resolution)
+        return self.grid[col][row]
+
+
+def a_star(grid, start, goal):
     """
-    Returns a list of nodes comprising this rectangular area
+    Returns a trajectory from start to goal
+    :param start: Starting position as tuple(x, y)
+    :param goal: Goal position as tuple(x, y)
+    :param grid: Grid object
+    :return: List of trajectory points as list(tuple(x, y), ...)
     """
-    num_cols = length // cell_resolution
-    num_rows = width // cell_resolution
-    graph = np.ndarray((num_cols, num_rows), dtype=Node)
+    queue = [(0, start)]
 
-    # 1. Create all the nodes
-    for x in range(num_cols):
-        for y in range(num_rows):
-            graph[x][y] = Node(x, y, False)
-    # 2. Connect all the neighbors
-    min_col = 0
-    max_col = num_cols-1
-    min_row = 0
-    max_row = num_rows-1
-    for x in range(num_cols):
-        for y in range(num_rows):
-            node = graph[x][y]
-            if x > min_col:
-                node.neighbors.add(graph[x-1][y])
-            if x < max_col-1:
-                node.neighbors.add(graph[x+1][y])
-            if y > min_col:
-                node.neighbors.add(graph[x][y-1])
-            if y < max_col-1:
-                node.neighbors.add(graph[x][y+1])
-    # 3. Mark each node as occupied/unoccupied
+    while len(queue) > 0 and goal.parent is None:
+        # Pop the first element out of the queue
+        _, cur_node = queue.pop(0)
 
-    return graph
+        # go through the neighbors
+        for neighbor in cur_node.neighbors:
+            # if we haven't been there, add a parent
+            if neighbor.parent is None:
+                neighbor.parent = cur_node
+                cost = grid.cell_resolution # How much does it cost to get to this neighbor from cur_node?
+                heuristic = dist(neighbor.position, goal.position) # How close is this cell to the goal?
+                score = heuristic + cost
+                queue.append((score, neighbor))
+            if neighbor == goal:
+                break
 
-# def a_star(position, grid, goal):
-#     cell_parents = {}
-#     queue = []
-#     while len(queue) > 0 and :
+    path = []
+    cur_node = goal
+
+    # if no path was found, return none
+    if goal.parent is None:
+        return None
+
+    # iterate backwards from goal
+    while cur_node != start:
+        path.insert(0, cur_node)
+        cur_node = cur_node.parent
+
+    # add starting node to path
+    path.insert(0, start)
+
+    return path
 
 
 def bounding_box(points):

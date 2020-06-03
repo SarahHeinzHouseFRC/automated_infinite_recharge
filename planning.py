@@ -14,6 +14,7 @@ class Planning:
     def __init__(self):
         plt.ion()
         self.prev_obstacles = None
+        self.grid = alg.Grid(width=IN_TO_M*2*161.81, height=IN_TO_M*2*314.96, cell_resolution=0.1, origin=(0,0))
 
         self.outer_wall = IN_TO_M * np.array([
             [161.81, 288.58],
@@ -74,6 +75,10 @@ class Planning:
             [-107.48, 29.92],
         ])
 
+        self.field_elements = [self.outer_wall, self.right_column, self.top_column, self.left_column, self.bottom_column,
+                self.right_trench_right_wall, self.right_trench_left_wall,
+                self.left_trench_right_wall, self.left_trench_left_wall]
+
     def run(self, world_state):
         # 1. Identify the goal
         self.behavior_planning(world_state)
@@ -119,7 +124,26 @@ class Planning:
         Identifies a motion plan for achieving the goal state contained in world_state['goal'] and places a
         trajectory waypoint into world_state['waypoint'].
         """
-        world_state['trajectory'] = list(world_state['goal']) if world_state['goal'] is not None else None
+        # clear the positions previously marked as obstacles because they may have changed
+        self.grid.clear()
+
+        # Insert static obstacles
+        static_obstacles = [alg.bounding_box(static_obstacle) for static_obstacle in self.field_elements]
+        self.grid.insert_obstacles(static_obstacles)
+
+        # Insert dynamic obstacles
+        dynamic_obstacles = world_state['obstacles']['others']
+        self.grid.insert_obstacles(dynamic_obstacles)
+
+        # call a* to generate a path to goal
+        if world_state['goal'] is not None:
+            start_node = self.grid.get_cell(world_state['pose'][0])
+            goal_node = self.grid.get_cell(world_state['goal'])
+            node_path = alg.a_star(self.grid, start_node, goal_node)
+            trajectory = [node.position for node in node_path]
+            world_state['trajectory'] = trajectory
+        else:
+            world_state['trajectory'] = None
 
     def visualize(self, world_state):
         plt.clf()

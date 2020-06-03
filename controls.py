@@ -62,7 +62,7 @@ class Controls:
 
         pose = plan_state['pose']
         start = np.array(pose[0])
-        goal = np.array(plan_state['trajectory'])
+        goal = np.array(plan_state['trajectory'][0])
 
         curr_heading = pose[1] % (2*np.pi)
         vec_start_to_goal = goal - start
