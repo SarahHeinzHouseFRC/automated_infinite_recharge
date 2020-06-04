@@ -135,12 +135,16 @@ class Planning:
         dynamic_obstacles = world_state['obstacles']['others']
         self.grid.insert_obstacles(dynamic_obstacles)
 
-        # call a* to generate a path to goal
+        # Call a* to generate a path to goal
         if world_state['goal'] is not None:
-            start_node = self.grid.get_cell(world_state['pose'][0])
-            goal_node = self.grid.get_cell(world_state['goal'])
+            start = world_state['pose'][0]
+            goal = world_state['goal']
+            start_node = self.grid.get_cell(start)
+            goal_node = self.grid.get_cell(goal)
             node_path = alg.a_star(self.grid, start_node, goal_node)
             trajectory = [node.position for node in node_path]
+            trajectory[0] = start
+            trajectory[-1] = goal
             world_state['trajectory'] = trajectory
         else:
             world_state['trajectory'] = None

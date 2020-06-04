@@ -19,7 +19,7 @@ class Visualize:
             draw.append({
                 'shape': 'box',
                 'text': 'ball',
-                'color': 'blue',
+                'color': 'yellow',
                 'x': x,
                 'y': y,
                 'width': 2*radius,
@@ -35,7 +35,7 @@ class Visualize:
             draw.append({
                 'shape': 'box',
                 'text': 'obstacle',
-                'color': 'yellow',
+                'color': 'red',
                 'x': min_x + width/2,
                 'y': min_y + height/2,
                 'width': width,
@@ -55,10 +55,10 @@ class Visualize:
         draw.append({
                 'shape': 'grid',
                 'text': 'grid1',
-                'color': 'yellow',
-                'cols': 20,
-                'rows': 20,
-                'cellSize': 10,
+                'color': 'darkgray',
+                'cols': 100,
+                'rows': 160,
+                'cellSize': 0.1,
                 'occupancy': [1, 0, 1, 1]
         })
 

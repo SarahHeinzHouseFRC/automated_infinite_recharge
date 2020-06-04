@@ -21,6 +21,10 @@ class Node:
     def __lt__(self, other):
         return self.position < other.position
 
+    def clear(self):
+        self.parent = None
+        self.occupied = False
+
 
 class Grid:
     def __init__(self, width, height, cell_resolution, origin):
@@ -83,11 +87,11 @@ class Grid:
 
     def clear(self):
         """
-        Marks all nodes as unoccupied
+        Marks all nodes as unoccupied and resets all parents
         """
         for row in self.grid:
             for cell in row:
-                cell.occupied = False
+                cell.clear()
 
     def get_cell(self, point):
         """
@@ -119,6 +123,7 @@ def a_star(grid, start, goal):
     :param grid: Grid object
     :return: List of trajectory points as list(tuple(x, y), ...)
     """
+    start.parent = start  # Just needs to not be None
     queue = [(0, start)]
 
     while len(queue) > 0 and goal.parent is None:
