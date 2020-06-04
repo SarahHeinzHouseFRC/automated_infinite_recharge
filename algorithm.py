@@ -13,12 +13,13 @@ class Node:
         """
         :param position: Node's position as tuple(x, y)
         """
-        # x and y coordinates of node
         self.position = position
-        # nodes it is connected to
-        self.neighbors = set ()
+        self.neighbors = set()
         self.parent = None
         self.occupied = False
+
+    def __lt__(self, other):
+        return self.position < other.position
 
 
 class Grid:
@@ -33,16 +34,20 @@ class Grid:
         """
 
         # store the resolution of each cell for marking cells later
+        self.width = width
+        self.height = height
         self.cell_resolution = cell_resolution
         self.origin = origin
-        self.num_cols = int(width // self.cell_resolution)
-        self.num_rows = int(height // self.cell_resolution)
+        self.num_cols = int(self.width / self.cell_resolution)
+        self.num_rows = int(self.height / self.cell_resolution)
         self.grid = np.ndarray((self.num_cols, self.num_rows), dtype=Node)
 
         # 1. Create all the nodes
-        for x in range(self.num_cols):
-            for y in range(self.num_rows):
-                self.grid[x][y] = Node((x, y))
+        for col in range(self.num_cols):
+            for row in range(self.num_rows):
+                x = (col * self.cell_resolution) + (self.cell_resolution / 2) - self.width / 2
+                y = (row * self.cell_resolution) + (self.cell_resolution / 2) - self.height / 2
+                self.grid[col][row] = Node((x, y))
 
         # 2. Connect all the neighbors
         min_col = 0
@@ -56,9 +61,9 @@ class Grid:
                     node.neighbors.add(self.grid[x-1][y])
                 if x < max_col-1:
                     node.neighbors.add(self.grid[x+1][y])
-                if y > min_col:
+                if y > min_row:
                     node.neighbors.add(self.grid[x][y-1])
-                if y < max_col-1:
+                if y < max_row-1:
                     node.neighbors.add(self.grid[x][y+1])
 
     def insert_obstacles(self, obstacles):
@@ -77,60 +82,75 @@ class Grid:
                     self.grid[col][row].occupied = True
 
     def clear(self):
+        """
+        Marks all nodes as unoccupied
+        """
         for row in self.grid:
             for cell in row:
                 cell.occupied = False
 
     def get_cell(self, point):
         """
-        Queries the grid to return the cell at the given point
+        Queries the grid to return the cell containing the given point, or None if out-of-bounds
         :param point: A point as tuple(x, y)
         :return: The node corresponding to the given point
         """
-        col = int((point[0] + self.origin[0]) // self.cell_resolution)
-        row = int((point[1] + self.origin[1]) // self.cell_resolution)
-        return self.grid[col][row]
+        # Error-checking
+        x = point[0]
+        y = point[1]
+        min_x = self.origin[0] - (self.width / 2)
+        max_x = self.origin[0] + (self.width / 2)
+        min_y = self.origin[1] - (self.height / 2)
+        max_y = self.origin[1] + (self.height / 2)
+        if min_x <= x < max_x and min_y <= y < max_y:
+            col = int((x - min_x) / self.cell_resolution)
+            row = int((y - min_y) / self.cell_resolution)
+            return self.grid[col][row]
+        else:
+            return None
 
 
 def a_star(grid, start, goal):
     """
-    Returns a trajectory from start to goal
-    :param start: Starting position as tuple(x, y)
-    :param goal: Goal position as tuple(x, y)
+    Returns a trajectory from start to goal as a list of Nodes or None if no path is found. The returned trajectory will
+    start with the start node and end with the goal node
+    :param start: Starting node
+    :param goal: Goal node
     :param grid: Grid object
     :return: List of trajectory points as list(tuple(x, y), ...)
     """
     queue = [(0, start)]
 
     while len(queue) > 0 and goal.parent is None:
-        # Pop the first element out of the queue
+        # Pop a node from the queue
         _, cur_node = queue.pop(0)
 
-        # go through the neighbors
+        # Run through its neighbors
         for neighbor in cur_node.neighbors:
-            # if we haven't been there, add a parent
+            # If unvisited, add it to the queue
             if neighbor.parent is None:
                 neighbor.parent = cur_node
                 cost = grid.cell_resolution # How much does it cost to get to this neighbor from cur_node?
                 heuristic = dist(neighbor.position, goal.position) # How close is this cell to the goal?
                 score = heuristic + cost
                 queue.append((score, neighbor))
+                queue.sort()
             if neighbor == goal:
                 break
 
     path = []
     cur_node = goal
 
-    # if no path was found, return none
+    # If no path was found, return none
     if goal.parent is None:
         return None
 
-    # iterate backwards from goal
+    # Iterate backwards from goal
     while cur_node != start:
         path.insert(0, cur_node)
         cur_node = cur_node.parent
 
-    # add starting node to path
+    # Add starting node to path
     path.insert(0, start)
 
     return path

@@ -14,7 +14,7 @@ class Planning:
     def __init__(self):
         plt.ion()
         self.prev_obstacles = None
-        self.grid = alg.Grid(width=IN_TO_M*2*161.81, height=IN_TO_M*2*314.96, cell_resolution=0.1, origin=(0,0))
+        self.grid = alg.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
 
         self.outer_wall = IN_TO_M * np.array([
             [161.81, 288.58],
