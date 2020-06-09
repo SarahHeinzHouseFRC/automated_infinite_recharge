@@ -76,10 +76,10 @@ class Grid:
         :param obstacles: List of rectangular obstacles where each obstacle is ((min_x, min_y), (max_x, max_y))
         """
         for ((min_x, min_y), (max_x, max_y)) in obstacles:
-            min_col = int((min_x + self.origin[0]) // self.cell_resolution)
-            max_col = int((max_x + self.origin[0]) // self.cell_resolution)
-            min_row = int((min_y + self.origin[1]) // self.cell_resolution)
-            max_row = int((max_y + self.origin[1]) // self.cell_resolution)
+            min_col = int((min_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
+            max_col = int((max_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
+            min_row = int((min_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
+            max_row = int((max_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
 
             for col in range(min_col, max_col):
                 for row in range(min_row, max_row):
@@ -89,8 +89,8 @@ class Grid:
         """
         Marks all nodes as unoccupied and resets all parents
         """
-        for row in self.grid:
-            for cell in row:
+        for col in self.grid:
+            for cell in col:
                 cell.clear()
 
     def get_cell(self, point):

@@ -90,7 +90,8 @@ class Planning:
 
         plan_state = {
             'pose': world_state['pose'],
-            'trajectory': world_state['trajectory']
+            'trajectory': world_state['trajectory'],
+            'grid': world_state['grid']
         }
         return plan_state
 
@@ -128,14 +129,14 @@ class Planning:
         self.grid.clear()
 
         # Insert static obstacles
-        static_obstacles = [alg.bounding_box(static_obstacle) for static_obstacle in self.field_elements]
-        self.grid.insert_obstacles(static_obstacles)
+        # static_obstacles = [alg.bounding_box(static_obstacle) for static_obstacle in self.field_elements]
+        # self.grid.insert_obstacles(static_obstacles)
 
         # Insert dynamic obstacles
         dynamic_obstacles = world_state['obstacles']['others']
         self.grid.insert_obstacles(dynamic_obstacles)
 
-        # Call a* to generate a path to goal
+        # Call A* to generate a path to goal
         if world_state['goal'] is not None:
             start = world_state['pose'][0]
             goal = world_state['goal']
@@ -148,6 +149,8 @@ class Planning:
             world_state['trajectory'] = trajectory
         else:
             world_state['trajectory'] = None
+
+        world_state['grid'] = self.grid
 
     def visualize(self, world_state):
         plt.clf()

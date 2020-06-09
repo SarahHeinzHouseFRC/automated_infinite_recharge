@@ -52,14 +52,17 @@ class Visualize:
             })
 
         # Draw grid
-        draw.append({
+        grid_drawer = {
                 'shape': 'grid',
                 'text': 'grid1',
                 'color': 'darkgray',
                 'cols': 100,
                 'rows': 160,
                 'cellSize': 0.1,
-                'occupancy': [1, 0, 1, 1]
-        })
-
+                'occupancy': []
+        }
+        for col in plan_state['grid'].grid:
+            for cell in col:
+                grid_drawer['occupancy'].append(1 if cell.occupied else 0)
+        draw.append(grid_drawer)
         return draw
