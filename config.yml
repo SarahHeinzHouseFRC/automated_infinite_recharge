@@ -1,0 +1,71 @@
+# Copyright (c) 2020 FRC Team 3260
+
+client:
+  ip: "127.0.0.1"                 # IP address where client is running
+  port: 6000                      # Port where client is running
+
+sim:
+  ip: "127.0.0.1"                 # IP address where sim is running
+  port: 8000                      # Port where core should send its commands
+  field:
+    exteriorWall:                 # Exterior wall
+      - [161.81, 288.58]
+      - [90.94, 314.96]
+      - [-90.94, 314.96]
+      - [-161.81, 288.58]
+      - [-161.81, -288.58]
+      - [-90.94, -314.96]
+      - [90.94, -314.96]
+      - [161.81, -288.58]
+    rightTrenchRightWall:         # Right trench right wall
+      - [161.81, -59.84]
+      - [161.81, -29.92]
+      - [159.84, -29.92]
+      - [159.84, -59.84]
+    rightTrenchLeftWall:          # Right trench left wall
+      - [107.48, -59.84]
+      - [107.48, -29.92]
+      - [105.51, -29.92]
+      - [105.51, -59.84]
+    leftTrenchRightWall:          # Left trench right wall
+      - [-159.84, 29.92]
+      - [-159.84, 59.84]
+      - [-161.81, 59.84]
+      - [-161.81, 29.92]
+    leftTrenchLeftWall:           # Left trench left wall
+      - [-105.51, 29.92]
+      - [-105.51, 59.84]
+      - [-107.48, 59.84]
+      - [-107.48, 29.92]
+    rightColumn:                  # Right column
+      - [105.12, -47.64]
+      - [100.39, -36.61]
+      - [89.37, -41.34]
+      - [94.09, -52.36]
+    topColumn:                    # Top column
+      - [44.88, 97.64]
+      - [40.55, 108.27]
+      - [29.53, 103.54]
+      - [33.86, 92.52]
+    leftColumn:                   # Left column
+      - [-89.37, 41.34]
+      - [-94.09, 52.36]
+      - [-105.12, 47.64]
+      - [-100.39, 36.61]
+    bottomColumn:                 # Bottom column
+      - [-29.53, -103.54]
+      - [-33.86, -92.52]
+      - [-44.88, -96.85]
+      - [-40.55, -108.27]
+    blueGoalRegion:               # Blue goal region
+      - [-84.00, -314.96]
+      - [-84.00, -354.96]
+      - [-50.00, -354.96]
+      - [-50.00, -314.96]
+    redGoalRegion:                # Red goal region
+      - [84.00, 314.96]
+      - [84.00, 354.96]
+      - [50.00, 354.96]
+      - [50.00, 314.96]
+    blueOuttake: [-61.00, 314.96]
+    redOuttake: [61.00, -314.96]

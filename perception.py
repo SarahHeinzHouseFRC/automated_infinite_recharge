@@ -14,74 +14,13 @@ class Perception:
     """
     Runs full perception stack on a sweep of points from the LIDAR
     """
-    def __init__(self):
-        self.outer_wall = IN_TO_M * np.array([
-            [161.81, 288.58],
-            [90.94, 314.96],
-            [-90.94, 314.96],
-            [-161.81, 288.58],
-            [-161.81, -288.58],
-            [-90.94, -314.96],
-            [90.94, -314.96],
-            [161.81, -288.58],
-        ])
-        self.right_column = IN_TO_M * np.array([
-            [105.12, -47.64],
-            [100.39, -36.61],
-            [89.37, -41.34],
-            [94.09, -52.36],
-        ])
-        self.top_column = IN_TO_M * np.array([
-            [44.88, 97.64],
-            [40.55, 108.27],
-            [29.53, 103.54],
-            [33.86, 92.52],
-        ])
-        self.left_column = IN_TO_M * np.array([
-            [-89.37, 41.34],
-            [-94.09, 52.36],
-            [-105.12, 47.64],
-            [-100.39, 36.61],
-        ])
-        self.bottom_column = IN_TO_M * np.array([
-            [-29.53, -103.54],
-            [-33.86, -92.52],
-            [-44.88, -96.85],
-            [-40.55, -108.27],
-        ])
-        self.right_trench_right_wall = IN_TO_M * np.array([
-            [161.81, -59.84],
-            [161.81, -29.92],
-            [159.84, -29.92],
-            [159.84, -59.84],
-        ])
-        self.right_trench_left_wall = IN_TO_M * np.array([
-            [107.48, -59.84],
-            [107.48, -29.92],
-            [105.51, -29.92],
-            [105.51, -59.84],
-        ])
-        self.left_trench_right_wall = IN_TO_M * np.array([
-            [-159.84, 29.92],
-            [-159.84, 59.84],
-            [-161.81, 59.84],
-            [-161.81, 29.92],
-        ])
-        self.left_trench_left_wall = IN_TO_M * np.array([
-            [-105.51, 29.92],
-            [-105.51, 59.84],
-            [-107.48, 59.84],
-            [-107.48, 29.92],
-        ])
+    def __init__(self, config):
+        self.field = Polygon(config.outer_wall)
+        self.field_elements = [Polygon(_) for _ in config.field_elements]
 
-        self.field_elements = [Polygon(_) for _ in
-                               [self.right_column, self.left_column, self.top_column, self.bottom_column,
-                                self.right_trench_right_wall, self.right_trench_left_wall,
-                                self.left_trench_right_wall, self.left_trench_left_wall]]
+        self.field.scale(0.99)
         for field_element in self.field_elements:
             field_element.scale(1.01)
-        self.field = Polygon(self.outer_wall)
-        self.field.scale(0.99)
 
     def run(self, vehicle_state):
         """

@@ -4,77 +4,18 @@
 
 import numpy as np
 import algorithm as alg
+from geometry import Polygon
 
 IN_TO_M = 0.0254
 
 
 class Planning:
-    def __init__(self):
+    def __init__(self, config):
+        self.field = Polygon(config.outer_wall)
+        self.field_elements = [Polygon(_) for _ in config.field_elements]
+
         self.prev_obstacles = None
         self.grid = alg.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
-
-        self.outer_wall = IN_TO_M * np.array([
-            [161.81, 288.58],
-            [90.94, 314.96],
-            [-90.94, 314.96],
-            [-161.81, 288.58],
-            [-161.81, -288.58],
-            [-90.94, -314.96],
-            [90.94, -314.96],
-            [161.81, -288.58],
-        ])
-        self.right_column = IN_TO_M * np.array([
-            [105.12, -47.64],
-            [100.39, -36.61],
-            [89.37, -41.34],
-            [94.09, -52.36],
-        ])
-        self.top_column = IN_TO_M * np.array([
-            [44.88, 97.64],
-            [40.55, 108.27],
-            [29.53, 103.54],
-            [33.86, 92.52],
-        ])
-        self.left_column = IN_TO_M * np.array([
-            [-89.37, 41.34],
-            [-94.09, 52.36],
-            [-105.12, 47.64],
-            [-100.39, 36.61],
-        ])
-        self.bottom_column = IN_TO_M * np.array([
-            [-29.53, -103.54],
-            [-33.86, -92.52],
-            [-44.88, -96.85],
-            [-40.55, -108.27],
-        ])
-        self.right_trench_right_wall = IN_TO_M * np.array([
-            [161.81, -59.84],
-            [161.81, -29.92],
-            [159.84, -29.92],
-            [159.84, -59.84],
-        ])
-        self.right_trench_left_wall = IN_TO_M * np.array([
-            [107.48, -59.84],
-            [107.48, -29.92],
-            [105.51, -29.92],
-            [105.51, -59.84],
-        ])
-        self.left_trench_right_wall = IN_TO_M * np.array([
-            [-159.84, 29.92],
-            [-159.84, 59.84],
-            [-161.81, 59.84],
-            [-161.81, 29.92],
-        ])
-        self.left_trench_left_wall = IN_TO_M * np.array([
-            [-105.51, 29.92],
-            [-105.51, 59.84],
-            [-107.48, 59.84],
-            [-107.48, 29.92],
-        ])
-
-        self.field_elements = [self.outer_wall, self.right_column, self.top_column, self.left_column, self.bottom_column,
-                self.right_trench_right_wall, self.right_trench_left_wall,
-                self.left_trench_right_wall, self.left_trench_left_wall]
 
     def run(self, world_state):
         # 1. Identify the goal
