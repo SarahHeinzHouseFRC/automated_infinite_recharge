@@ -3,8 +3,6 @@
 #
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import algorithm as alg
 
 IN_TO_M = 0.0254
@@ -12,7 +10,6 @@ IN_TO_M = 0.0254
 
 class Planning:
     def __init__(self):
-        plt.ion()
         self.prev_obstacles = None
         self.grid = alg.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
 
@@ -86,8 +83,6 @@ class Planning:
         # 2. Move towards it if there is a nearest ball (using A*)
         self.motion_planning(world_state)
 
-        # self.visualize(world_state)
-
         plan_state = {
             'pose': world_state['pose'],
             'trajectory': world_state['trajectory'],
@@ -151,53 +146,3 @@ class Planning:
             world_state['trajectory'] = None
 
         world_state['grid'] = self.grid
-
-    def visualize(self, world_state):
-        plt.clf()
-        fig = plt.gcf()
-        ax = fig.gca()
-
-        # Plot field
-        plt.fill(self.outer_wall[:, 0], self.outer_wall[:, 1], facecolor=(0,0,0,0), edgecolor='gray', linewidth=1)
-
-        # Plot vehicle position
-        vehicle_x, vehicle_y = world_state['pose'][0]
-        vehicle_position = np.array((vehicle_x, vehicle_y))
-        plt.plot(vehicle_position[0], vehicle_position[1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
-        plt.text(vehicle_x, vehicle_y + 0.05, 'Self', color='r', fontsize=10)
-
-        # Plot obstacles
-        for ball in world_state['obstacles']['balls']:
-            ball_x, ball_y = ball[0]
-            ball_radius = ball[1]
-            box_x = ball_x - ball_radius - 0.05
-            box_y = ball_y - ball_radius - 0.05
-            box_width = 2 * ball_radius + 0.1
-            box_height = 2 * ball_radius + 0.1
-            bbox = patches.Rectangle((box_x, box_y), box_width, box_height, linewidth=1, edgecolor='r', facecolor='none')
-            ax.add_patch(bbox)
-            plt.text(box_x, box_y + box_height + 0.05, 'Ball', color='r', fontsize=10)
-        for perception_object in world_state['obstacles']['others']:
-            min_x, max_x, min_y, max_y = perception_object
-            width = max_x - min_x
-            height = max_y - min_y
-            bbox = patches.Rectangle((min_x, min_y), width, height, linewidth=1, edgecolor='b', facecolor='none')
-            ax.add_patch(bbox)
-            plt.text(min_x, min_y + height + 0.05, 'Other', color='b', fontsize=10)
-
-        # Plot goal
-        if world_state['goal'] is not None:
-            goal_x, goal_y = world_state['goal']
-            plt.plot(goal_x, goal_y, color='g', marker='.', linestyle='')
-            plt.text(goal_x, goal_y + 0.05, 'Goal', color='g', fontsize=10)
-
-            x = [vehicle_x, goal_x]
-            y = [vehicle_y, goal_y]
-            plt.plot(x, y, color='g')
-
-        plt.title('Team SHARP FRC 2020 Planning Stack')
-        plt.xlabel('X (meters)')
-        plt.ylabel('Y (meters)')
-        plt.axis('equal')
-        plt.draw()
-        plt.pause(0.1)

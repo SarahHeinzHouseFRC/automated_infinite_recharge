@@ -3,8 +3,6 @@
 #
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import algorithm as alg
 from collections import defaultdict
 from geometry import Polygon
@@ -17,8 +15,6 @@ class Perception:
     Runs full perception stack on a sweep of points from the LIDAR
     """
     def __init__(self):
-        plt.ion()
-
         self.outer_wall = IN_TO_M * np.array([
             [161.81, 288.58],
             [90.94, 314.96],
@@ -107,8 +103,6 @@ class Perception:
 
         # 4. Classification
         self.classify(vehicle_state)
-
-        # self.visualize(vehicle_state)
 
         """
         Return pose as ((x, y), theta)
@@ -272,73 +266,3 @@ class Perception:
             'balls': balls,
             'others': others
         }
-
-    def visualize(self, vehicle_state):
-        plt.clf()
-        fig = plt.gcf()
-        ax = fig.gca()
-
-        # Plot vehicle position
-        x = vehicle_state['x']
-        y = vehicle_state['y']
-        vehicle_position = np.array([x, y])
-        plt.plot(vehicle_position[0], vehicle_position[1], color=(1.0, 0.37, 0.22, 1.0), marker='x', linestyle='')
-        plt.text(vehicle_state['x'], vehicle_state['y'] + 0.05, 'Self', color='r', fontsize=10)
-
-        # Plot background subtraction
-        world_frame_sweep = vehicle_state['lidarSweepWorld']
-        mask0 = np.array(vehicle_state['lidarSweepMask'], dtype=bool)
-        mask1 = np.invert(mask0)
-        plt.scatter(world_frame_sweep[:, 0][mask0], world_frame_sweep[:, 1][mask0], marker='.', color=(0.15, 0.65, 0.65, 1.0), label='Foreground point')
-        plt.scatter(world_frame_sweep[:, 0][mask1], world_frame_sweep[:, 1][mask1], marker='.', color='gray', label='Background point')
-
-        # Plot segmentation
-        # plt.fill(self.field.vertices[:, 0], self.field.vertices[:, 1], fc=(0,0,0,0), ec=(0.15, 0.65, 0.65, 0.8))
-        # for poly in self.field_elements:
-        #     plt.fill(poly.vertices[:,0], poly.vertices[:,1], fc=(0.15, 0.65, 0.65, 0.8))
-
-        # Plot clusters
-        # i = 0
-        # for cluster in vehicle_state['clusters']:
-        #     plt.scatter(cluster[:, 0], cluster[:, 1], marker='.', label=i)
-        #     i += 1
-
-        # Plot classes
-        for ball in vehicle_state['classes']['balls']:
-            if ball is not None:
-                ball_x, ball_y = ball[0]
-                ball_radius = ball[1]
-                box_x = ball_x - ball_radius - 0.05
-                box_y = ball_y - ball_radius - 0.05
-                box_width = 2*ball_radius + 0.1
-                box_height = 2*ball_radius + 0.1
-                plt.text(box_x, box_y+box_height+0.05, 'Ball', color='r', fontsize=10)
-                # circle = plt.Circle((ball[0]), ball[1], color=(0.75, 0.75, 0.0, 0.5))
-                # ax.add_patch(circle)
-                bbox = patches.Rectangle((box_x, box_y), box_width, box_height, linewidth=1, edgecolor='r', facecolor='none')
-                ax.add_patch(bbox)
-
-        plt.title('Team SHARP FRC 2020 Perception Stack')
-        plt.xlabel('X (meters)')
-        plt.ylabel('Y (meters)')
-        plt.axis('equal')
-        plt.legend(loc='lower right')
-        plt.draw()
-        plt.pause(0.1)
-
-
-_ = '''
-if self.field.point_in_convex_polygon(point)
-    and not any([col.point_in_convex_polygon(point) for col in self.field_elements]:
-'''
-
-_ = '''
-import numpy as np
-import numpy.ma as ma
-arr1 = np.array([0,1,2,3,4,5])
-mask = np.array([0,1,0,1,0,1])
-ma.masked_array(arr1, mask)
-## masked_array(data=[0, --, 2, --, 4, --],
-##             mask=[False,  True, False,  True, False,  True],
-##       fill_value=999999)
-'''
