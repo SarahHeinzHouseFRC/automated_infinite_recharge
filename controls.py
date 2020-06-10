@@ -63,26 +63,35 @@ class Controls:
         pose = plan_state['pose']
         start = np.array(plan_state['trajectory'][0])
         goal = np.array(plan_state['trajectory'][1])
+        direction = plan_state['direction']
+        tube_mode = plan_state['tube_mode']
 
         curr_heading = pose[1] % (2*np.pi)
         vec_start_to_goal = goal - start
         desired_heading = np.arctan2(vec_start_to_goal[1], vec_start_to_goal[0]) % (2*np.pi)
 
         # If we're not facing the right way, turn in place. Else move straight.
-        left_drive_motor_speed = 255
-        right_drive_motor_speed = 255
+        left_drive_motor_speed = 50 * direction
+        right_drive_motor_speed = 50 * direction
 
         margin = 0.25
 
-        if abs(desired_heading - curr_heading) >= margin:
-            left_drive_motor_speed = int(self.pid_control_left.run(curr_heading, desired_heading, curr_time))
-            right_drive_motor_speed = -int(self.pid_control_right.run(curr_heading, desired_heading, curr_time))
+        if direction != 0:
+            if direction == -1:
+                desired_heading += np.pi
+                desired_heading = desired_heading % (2*np.pi)
+            if abs(desired_heading - curr_heading) >= margin:
+                left_drive_motor_speed = int(self.pid_control_left.run(curr_heading, desired_heading, curr_time))
+                right_drive_motor_speed = -int(self.pid_control_right.run(curr_heading, desired_heading, curr_time))
 
+        intake_speed = 512 if tube_mode == 'INTAKE' else 0
+        outtake_speed = 512 if tube_mode == 'OUTTAKE' else 0
         vehicle_commands['leftDriveMotorSpeed'] = left_drive_motor_speed
         vehicle_commands['rightDriveMotorSpeed'] = right_drive_motor_speed
-        vehicle_commands['intakeCenterMotorSpeed'] = 512
-        vehicle_commands['intakeLeftMotorSpeed'] = 512
-        vehicle_commands['intakeRightMotorSpeed'] = 512
+        vehicle_commands['intakeCenterMotorSpeed'] = intake_speed
+        vehicle_commands['intakeLeftMotorSpeed'] = intake_speed
+        vehicle_commands['intakeRightMotorSpeed'] = intake_speed
+        vehicle_commands['tubeMotorSpeed'] = outtake_speed
 
         """
         Commands dict looks like this:

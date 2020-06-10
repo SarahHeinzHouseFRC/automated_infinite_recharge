@@ -32,3 +32,6 @@ class Config:
                                    IN_TO_M * np.array(config['sim']['field']['leftColumn']),
                                    IN_TO_M * np.array(config['sim']['field']['topColumn']),
                                    IN_TO_M * np.array(config['sim']['field']['bottomColumn'])]
+
+            self.red_goal_region = IN_TO_M * np.array(config['sim']['field']['redGoalRegion'])
+            self.blue_goal_region = IN_TO_M * np.array(config['sim']['field']['blueGoalRegion'])

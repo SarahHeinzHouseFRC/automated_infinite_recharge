@@ -6,6 +6,7 @@ from math import sqrt
 import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
+from PIL import Image, ImageDraw
 
 
 class Node:
@@ -61,16 +62,24 @@ class Grid:
         for x in range(self.num_cols):
             for y in range(self.num_rows):
                 node = self.grid[x][y]
-                if x > min_col:
-                    node.neighbors.add(self.grid[x-1][y])
                 if x < max_col-1:
                     node.neighbors.add(self.grid[x+1][y])
-                if y > min_row:
-                    node.neighbors.add(self.grid[x][y-1])
+                if x > min_col:
+                    node.neighbors.add(self.grid[x-1][y])
                 if y < max_row-1:
                     node.neighbors.add(self.grid[x][y+1])
+                if y > min_row:
+                    node.neighbors.add(self.grid[x][y-1])
+                if x < max_col-1 and y < max_row-1:
+                    node.neighbors.add(self.grid[x+1][y+1])
+                if x > min_col and y < max_row-1:
+                    node.neighbors.add(self.grid[x-1][y+1])
+                if x < max_col-1 and y > min_row:
+                    node.neighbors.add(self.grid[x+1][y-1])
+                if x > min_col and y > min_row:
+                    node.neighbors.add(self.grid[x-1][y-1])
 
-    def insert_obstacles(self, obstacles):
+    def insert_rectangular_obstacles(self, obstacles):
         """
         Find the grid cells corresponding to each obstacle and marks them as occupied.
         :param obstacles: List of rectangular obstacles where each obstacle is ((min_x, min_y), (max_x, max_y))
@@ -81,9 +90,19 @@ class Grid:
             min_row = int((min_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
             max_row = int((max_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
 
-            for col in range(min_col, max_col):
-                for row in range(min_row, max_row):
+            for col in range(min_col, max_col+1):
+                for row in range(min_row, max_row+1):
                     self.grid[col][row].occupied = True
+
+    def insert_obstacles(self, obstacles):
+        """
+        Find the grid cells corresponding to each obstacle and marks them as occupied.
+        :param obstacles: List of polygons representing each obstacle.
+        """
+        # img = Image.new('L', (self.num_cols, self.num_rows), 0)
+        # ImageDraw.Draw(img).polygon(polygon, outline=1, fill=1)
+        # mask = numpy.array(img)
+        pass
 
     def clear(self):
         """

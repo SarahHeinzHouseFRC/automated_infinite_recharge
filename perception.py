@@ -53,7 +53,8 @@ class Perception:
         """
         world_state = {
             'pose': ((vehicle_state['x'], vehicle_state['y']), vehicle_state['theta']),
-            'obstacles': vehicle_state['classes']
+            'obstacles': vehicle_state['classes'],
+            'ingestedBalls': vehicle_state['ingestedBalls']
         }
 
         return world_state
