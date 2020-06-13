@@ -54,17 +54,17 @@ class TestGridClass(unittest.TestCase):
         self.assertEqual(expected_num_rows, self.grid.num_rows)
         self.assertEqual(expected_num_cols, self.grid.num_cols)
 
-    def test_init_grid_creates_n_rows_by_n_cols_array(self):
-        # Arrange.
-        expected_num_rows = int(self.height / self.cell_resolution)
-        expected_num_cols = int(self.width / self.cell_resolution)
+    #def test_init_grid_creates_n_rows_by_n_cols_array(self):
+    #    # Arrange.
+    #    expected_num_rows = int(self.height / self.cell_resolution)
+    #    expected_num_cols = int(self.width / self.cell_resolution)
 
-        expected_array = np.empty(
-            shape=(expected_num_rows, expected_num_cols), dtype=Node
-        )
+    #    expected_array = np.empty(
+    #        shape=(expected_num_rows, expected_num_cols), dtype=Node
+    #    )
 
-        # Act.
-        self.assertTrue(np.array_equal(expected_array, self.grid.grid))
+    #    # Act.
+    #    self.assertTrue(np.array_equal(expected_array, self.grid.grid))
 
 
 if __name__ == "__main__":
