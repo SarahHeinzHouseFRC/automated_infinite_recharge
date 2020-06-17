@@ -24,14 +24,22 @@ class Config:
             self.sim_ip = config['sim']['ip']
             self.sim_port = config['sim']['port'] + 10 * (player-1)
             self.outer_wall = IN_TO_M * np.array(config['sim']['field']['exteriorWall'])
-            self.field_elements = [IN_TO_M * np.array(config['sim']['field']['rightTrenchRightWall']),
-                                   IN_TO_M * np.array(config['sim']['field']['rightTrenchLeftWall']),
-                                   IN_TO_M * np.array(config['sim']['field']['leftTrenchRightWall']),
-                                   IN_TO_M * np.array(config['sim']['field']['leftTrenchLeftWall']),
-                                   IN_TO_M * np.array(config['sim']['field']['rightColumn']),
-                                   IN_TO_M * np.array(config['sim']['field']['leftColumn']),
-                                   IN_TO_M * np.array(config['sim']['field']['topColumn']),
-                                   IN_TO_M * np.array(config['sim']['field']['bottomColumn'])]
+            self.rightTrenchRightWall = IN_TO_M * np.array(config['sim']['field']['rightTrenchRightWall'])
+            self.rightTrenchLeftWall = IN_TO_M * np.array(config['sim']['field']['rightTrenchLeftWall'])
+            self.leftTrenchRightWall = IN_TO_M * np.array(config['sim']['field']['leftTrenchRightWall'])
+            self.leftTrenchLeftWall = IN_TO_M * np.array(config['sim']['field']['leftTrenchLeftWall'])
+            self.right_column = IN_TO_M * np.array(config['sim']['field']['rightColumn'])
+            self.left_column = IN_TO_M * np.array(config['sim']['field']['leftColumn'])
+            self.top_column = IN_TO_M * np.array(config['sim']['field']['topColumn'])
+            self.bottom_column = IN_TO_M * np.array(config['sim']['field']['bottomColumn'])
+            self.field_elements = [self.rightTrenchRightWall,
+                                   self.rightTrenchLeftWall,
+                                   self.leftTrenchRightWall,
+                                   self.leftTrenchLeftWall,
+                                   self.right_column,
+                                   self.left_column,
+                                   self.top_column,
+                                   self.bottom_column]
 
             self.red_goal_region = IN_TO_M * np.array(config['sim']['field']['redGoalRegion'])
             self.blue_goal_region = IN_TO_M * np.array(config['sim']['field']['blueGoalRegion'])

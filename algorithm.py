@@ -94,7 +94,7 @@ class Grid:
                 for row in range(min_row, max_row+1):
                     self.grid[col][row].occupied = True
 
-    def insert_obstacles(self, obstacles):
+    def insert_polygon(self, polygon):
         """
         Find the grid cells corresponding to each obstacle and marks them as occupied.
         :param obstacles: List of polygons representing each obstacle.
@@ -102,7 +102,34 @@ class Grid:
         # img = Image.new('L', (self.num_cols, self.num_rows), 0)
         # ImageDraw.Draw(img).polygon(polygon, outline=1, fill=1)
         # mask = numpy.array(img)
-        pass
+
+        # 1. Iterate over each row in the 'image'
+        for col in self.grid:
+            col_x, _ = col[0].position
+            # 2. In the current col, find all the contact points where the current col intersects with the polygon
+            contact_cells = []
+            for i in range(len(polygon.vertices)):
+                p1 = polygon.vertices[i - 1]
+                p2 = polygon.vertices[i]
+                if p1[0] < col_x < p2[0] or p2[0] < col_x < p1[0]:
+                # if p1[0] > col_x != p2[0] > col_x:
+                    m = (p2[1]-p1[1])/(p2[0]-p1[0])
+                    x = col_x
+                    y = m*(x - p1[0]) + p1[1]
+                    cell = self.get_cell((x, y))
+                    if cell is not None:
+                        contact_cells.append(cell)
+            # contact_cells = filter(lambda cell: cell is not None, contact_cells)
+
+            # 3. Iterate over the contact points marking each cell in this row as occupied/unoccupied
+            occupied_flag = False
+
+            for cell in col:
+                cell.occupied = occupied_flag or cell.occupied
+                if cell in contact_cells:
+                    cell.occupied = True # make sure contact cells are marked as occupied
+                    occupied_flag = not occupied_flag
+
 
     def clear(self):
         """
@@ -151,8 +178,8 @@ def a_star(grid, start, goal):
 
         # Run through its neighbors
         for neighbor in cur_node.neighbors:
-            # If unvisited, add it to the queue
-            if neighbor.parent is None:
+            # If unvisited and not occupied, add it to the queue
+            if neighbor.parent is None and not neighbor.occupied:
                 neighbor.parent = cur_node
                 cost = grid.cell_resolution # How much does it cost to get to this neighbor from cur_node?
                 heuristic = dist(neighbor.position, goal.position) # How close is this cell to the goal?

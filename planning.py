@@ -17,6 +17,10 @@ class Planning:
         self.field_elements = [Polygon(_) for _ in config.field_elements]
         self.red_goal_region = Polygon(config.red_goal_region)
         self.blue_goal_region = Polygon(config.blue_goal_region)
+        self.right_column = Polygon(config.right_column)
+        self.left_column = Polygon(config.left_column)
+        self.top_column = Polygon(config.top_column)
+        self.bottom_column = Polygon(config.bottom_column)
 
         self.prev_obstacles = None
         self.grid = alg.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
@@ -105,8 +109,11 @@ class Planning:
         self.grid.clear()
 
         # Insert static obstacles
-        # static_obstacles = [alg.bounding_box(static_obstacle) for static_obstacle in self.field_elements]
-        # self.grid.insert_obstacles(static_obstacles)
+        static_obstacles = [self.right_column, self.left_column, self.top_column, self.bottom_column]
+        for static_obstacle in static_obstacles:
+            self.grid.insert_polygon(static_obstacle)
+        # vertices = np.array([[0, 0], [2,0], [1,2]])
+        # self.grid.insert_polygon(Polygon(vertices))
 
         # Insert dynamic obstacles
         dynamic_obstacles = world_state['obstacles']['others']
