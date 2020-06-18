@@ -20,7 +20,7 @@ class Node:
         self.occupied = False
 
     def __lt__(self, other):
-        return self.position < other.position
+        return self.position[0] < other.position[0]
 
     def clear(self):
         self.parent = None

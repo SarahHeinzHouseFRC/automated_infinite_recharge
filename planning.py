@@ -5,8 +5,6 @@
 import numpy as np
 import algorithm as alg
 from geometry import Polygon
-from PIL import Image, ImageDraw
-import math
 
 IN_TO_M = 0.0254
 
@@ -17,10 +15,14 @@ class Planning:
         self.field_elements = [Polygon(_) for _ in config.field_elements]
         self.red_goal_region = Polygon(config.red_goal_region)
         self.blue_goal_region = Polygon(config.blue_goal_region)
-        self.right_column = Polygon(config.right_column)
-        self.left_column = Polygon(config.left_column)
-        self.top_column = Polygon(config.top_column)
-        self.bottom_column = Polygon(config.bottom_column)
+        self.static_obstacles = [Polygon(config.right_trench_right_wall),
+                                 Polygon(config.right_trench_left_wall),
+                                 Polygon(config.left_trench_right_wall),
+                                 Polygon(config.left_trench_left_wall),
+                                 Polygon(config.right_column),
+                                 Polygon(config.left_column),
+                                 Polygon(config.top_column),
+                                 Polygon(config.bottom_column)]
 
         self.prev_obstacles = None
         self.grid = alg.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
@@ -53,7 +55,6 @@ class Planning:
         start = world_state['pose'][0]  # Our current (x,y)
         scoring_zone = (self.blue_goal_region.center[0], self.blue_goal_region.center[1] + 1)
 
-        print("world_state['ingestedBalls'] =", world_state['ingestedBalls'])
         '''
         ### lazy f-strings for programmers and debug output (new in python3 (3.8?)):
         In [3]: x = {1:2, 3:4}
@@ -62,14 +63,12 @@ class Planning:
         x[1]=2, y='nice'
         '''
         if world_state['ingestedBalls'] > 4 or (alg.dist(start, scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0):
-            print("dist = ", alg.dist(start, scoring_zone))
 
             # If we're close to pregoal then run the tube
             if alg.dist(start, scoring_zone) <= 0.15:
                 tube_mode = 'OUTTAKE'
                 direction = 0
                 goal = scoring_zone
-                print('Reached scoring zone')
             # Else go towards pregoal
             else:
                 tube_mode = 'INTAKE'
@@ -109,10 +108,9 @@ class Planning:
         self.grid.clear()
 
         # Insert static obstacles
-        static_obstacles = [self.right_column, self.left_column, self.top_column, self.bottom_column]
-        for static_obstacle in static_obstacles:
+        for static_obstacle in self.static_obstacles:
             self.grid.insert_polygon(static_obstacle)
-        # vertices = np.array([[0, 0], [2,0], [1,2]])
+        # vertices = np.array([[-5, -8], [-3, -8], [-4, -6]])
         # self.grid.insert_polygon(Polygon(vertices))
 
         # Insert dynamic obstacles
