@@ -94,7 +94,7 @@ class Grid:
                 for row in range(min_row, max_row+1):
                     self.grid[col][row].occupied = True
 
-    def insert_polygon(self, polygon):
+    def insert_convex_polygon(self, polygon):
         """
         Find the grid cells corresponding to each obstacle and marks them as occupied.
         :param obstacles: List of polygons representing each obstacle.
@@ -107,28 +107,31 @@ class Grid:
         for col in self.grid:
             col_x, _ = col[0].position
             # 2. In the current col, find all the contact points where the current col intersects with the polygon
-            contact_cells = []
+            contact_cells = set()
             for i in range(len(polygon.vertices)):
                 p1 = polygon.vertices[i - 1]
                 p2 = polygon.vertices[i]
-                if p1[0] < col_x < p2[0] or p2[0] < col_x < p1[0]:
+                if p1[0] <= col_x <= p2[0] or p2[0] <= col_x <= p1[0]:
                 # if p1[0] > col_x != p2[0] > col_x:
                     m = (p2[1]-p1[1])/(p2[0]-p1[0])
                     x = col_x
                     y = m*(x - p1[0]) + p1[1]
                     cell = self.get_cell((x, y))
                     if cell is not None:
-                        contact_cells.append(cell)
-            # contact_cells = filter(lambda cell: cell is not None, contact_cells)
+                        contact_cells.add(cell)
 
             # 3. Iterate over the contact points marking each cell in this row as occupied/unoccupied
             occupied_flag = False
 
-            for cell in col:
-                cell.occupied = occupied_flag or cell.occupied
-                if cell in contact_cells:
-                    cell.occupied = True # make sure contact cells are marked as occupied
-                    occupied_flag = not occupied_flag
+            if len(contact_cells) != 1:
+                for cell in col:
+                    cell.occupied = occupied_flag or cell.occupied
+                    if cell in contact_cells:
+                        cell.occupied = True # make sure contact cells are marked as occupied
+                        occupied_flag = not occupied_flag
+            else:
+                for cell in contact_cells:
+                    cell.occupied = True
 
 
     def clear(self):

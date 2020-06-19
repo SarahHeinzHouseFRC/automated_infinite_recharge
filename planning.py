@@ -24,6 +24,8 @@ class Planning:
                                  Polygon(config.top_column),
                                  Polygon(config.bottom_column)]
 
+        [obst.grow_by_buffer(0.75) for obst in self.static_obstacles]
+
         self.prev_obstacles = None
         self.grid = alg.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
 
@@ -109,13 +111,20 @@ class Planning:
 
         # Insert static obstacles
         for static_obstacle in self.static_obstacles:
-            self.grid.insert_polygon(static_obstacle)
-        # vertices = np.array([[-5, -8], [-3, -8], [-4, -6]])
-        # self.grid.insert_polygon(Polygon(vertices))
+            self.grid.insert_convex_polygon(static_obstacle)
+        # triangle_vertices = np.array([[-5, -8], [-3, -8], [-4, -7]])
+        # self.grid.insert_convex_polygon(Polygon(triangle_vertices))
+        # rect_vertices = np.array([[-4, 0], [0, 0], [0, 4], [-4, 4]])
+        # self.grid.insert_convex_polygon(Polygon(rect_vertices))
 
         # Insert dynamic obstacles
         dynamic_obstacles = world_state['obstacles']['others']
-        self.grid.insert_rectangular_obstacles(dynamic_obstacles)
+        for obst in dynamic_obstacles:
+            (min_x, min_y), (max_x, max_y) = obst
+            vertices = np.array([[min_x, min_y], [max_x, min_y], [max_x, max_y], [min_x, max_y]])
+            poly = Polygon(vertices)
+            poly.grow_by_buffer(0.75)
+            # self.grid.insert_convex_polygon(poly)
 
         # Call A* to generate a path to goal
         if world_state['goal'] is not None:

@@ -4,6 +4,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from algorithm import dist
 
 
 def ccw(a, b, c):
@@ -33,6 +34,22 @@ class Polygon:
         self.vertices -= self.center
         self.vertices *= factor
         self.vertices += self.center
+
+    def grow_by_buffer(self, buffer):
+        """
+        Grows the polygon by adding a buffer distance all the way around this polygon
+        :param buffer: Buffer distance (meters)
+        """
+        for vertex in self.vertices:
+            # center vertex to make scaling easier
+            cur_dist = dist(vertex, self.center)
+            vertex -= self.center
+
+            scale_factor = (cur_dist+buffer)/cur_dist
+            vertex *= scale_factor
+
+            # move the vertex back relative to its position
+            vertex += self.center
 
 
 def main():
