@@ -3,31 +3,30 @@
 #
 
 import numpy as np
-import algorithm as alg
-from geometry import Polygon
+import geometry as geom
 
 IN_TO_M = 0.0254
 
 
 class Planning:
     def __init__(self, config):
-        self.field = Polygon(config.outer_wall)
-        self.field_elements = [Polygon(_) for _ in config.field_elements]
-        self.red_goal_region = Polygon(config.red_goal_region)
-        self.blue_goal_region = Polygon(config.blue_goal_region)
-        self.static_obstacles = [Polygon(config.right_trench_right_wall),
-                                 Polygon(config.right_trench_left_wall),
-                                 Polygon(config.left_trench_right_wall),
-                                 Polygon(config.left_trench_left_wall),
-                                 Polygon(config.right_column),
-                                 Polygon(config.left_column),
-                                 Polygon(config.top_column),
-                                 Polygon(config.bottom_column)]
+        self.field = config.outer_wall
+        self.field_elements = config.field_elements
+        self.red_goal_region = config.red_goal_region
+        self.blue_goal_region = config.blue_goal_region
+        self.static_obstacles = [config.right_trench_right_wall,
+                                 config.right_trench_left_wall,
+                                 config.left_trench_right_wall,
+                                 config.left_trench_left_wall,
+                                 config.right_column,
+                                 config.left_column,
+                                 config.top_column,
+                                 config.bottom_column]
 
         [obst.grow_by_buffer(0.75) for obst in self.static_obstacles]
 
         self.prev_obstacles = None
-        self.grid = alg.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
+        self.grid = geom.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
 
     def run(self, world_state):
         # 1. Identify the goal
@@ -64,10 +63,10 @@ class Planning:
         In [6]: print(f"{x[1]=}, {y=}")
         x[1]=2, y='nice'
         '''
-        if world_state['ingestedBalls'] > 4 or (alg.dist(start, scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0):
+        if world_state['ingestedBalls'] > 4 or (geom.dist(start, scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0):
 
             # If we're close to pregoal then run the tube
-            if alg.dist(start, scoring_zone) <= 0.15:
+            if geom.dist(start, scoring_zone) <= 0.15:
                 tube_mode = 'OUTTAKE'
                 direction = 0
                 goal = scoring_zone
@@ -84,7 +83,7 @@ class Planning:
             if self.prev_obstacles is not None:
                 # Run through and recover any balls within the deadzone and place them into world_state
                 for ball in self.prev_obstacles:
-                    if 0.5 < alg.dist(start, ball[0]) < deadzone_radius:
+                    if 0.5 < geom.dist(start, ball[0]) < deadzone_radius:
                         world_state['obstacles']['balls'].append(ball)
             self.prev_obstacles = world_state['obstacles']['balls']
 
@@ -92,7 +91,7 @@ class Planning:
             min_dist = np.inf
             goal = None
             for ball in world_state['obstacles']['balls']:
-                curr_dist = alg.dist(ball[0], start)
+                curr_dist = geom.dist(ball[0], start)
                 if curr_dist < min_dist:
                     min_dist = curr_dist
                     goal = ball[0]
@@ -122,7 +121,7 @@ class Planning:
         for obst in dynamic_obstacles:
             (min_x, min_y), (max_x, max_y) = obst
             vertices = np.array([[min_x, min_y], [max_x, min_y], [max_x, max_y], [min_x, max_y]])
-            poly = Polygon(vertices)
+            poly = geom.Polygon(vertices)
             poly.grow_by_buffer(0.75)
             # self.grid.insert_convex_polygon(poly)
 
@@ -132,7 +131,7 @@ class Planning:
             goal = world_state['goal']
             start_node = self.grid.get_cell(start)
             goal_node = self.grid.get_cell(goal)
-            node_path = alg.a_star(self.grid, start_node, goal_node)
+            node_path = geom.a_star(self.grid, start_node, goal_node)
             trajectory = [node.position for node in node_path]
             trajectory[0] = start
             trajectory[-1] = goal

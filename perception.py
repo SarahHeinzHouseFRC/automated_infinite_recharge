@@ -3,9 +3,8 @@
 #
 
 import numpy as np
-import algorithm as alg
 from collections import defaultdict
-from geometry import Polygon
+import geometry as geom
 
 IN_TO_M = 0.0254
 
@@ -15,8 +14,8 @@ class Perception:
     Runs full perception stack on a sweep of points from the LIDAR
     """
     def __init__(self, config):
-        self.field = Polygon(config.outer_wall)
-        self.field_elements = [Polygon(_) for _ in config.field_elements]
+        self.field = config.outer_wall
+        self.field_elements = config.field_elements
 
         self.field.scale(0.99)
         for field_element in self.field_elements:
@@ -182,7 +181,7 @@ class Perception:
             bucket = (point[0] // BIN_SIZE, point[1] // BIN_SIZE) # get coordinates from point
             buckets[bucket].append(point)
 
-        vehicle_state['clusters'] = alg.connected_components(buckets)
+        vehicle_state['clusters'] = geom.connected_components(buckets)
 
     def classify(self, vehicle_state):
         """
@@ -195,12 +194,12 @@ class Perception:
         others = list()
 
         for cluster in clusters:
-            circle = alg.ransac_circle_fit(cluster, consensus=0.99, tolerance=0.03, iterations=10)
+            circle = geom.ransac_circle_fit(cluster, consensus=0.99, tolerance=0.03, iterations=10)
             if circle is not None and 3.45*IN_TO_M <= circle[1] <= 3.55*IN_TO_M: # Balls are 3.5" in radius
                 balls.append(circle)
             else:
                 # Construct a bounding box and put into others list
-                others.append(alg.bounding_box(cluster))
+                others.append(geom.bounding_box(cluster))
 
         vehicle_state['classes'] = {
             'balls': balls,
