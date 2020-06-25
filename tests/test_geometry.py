@@ -1,15 +1,12 @@
+#
+# Copyright (c) 2020 FRC Team 3260
+#
+
 import numpy as np
 import unittest
+from tests.test_utils import sign, make_square_vertices
 import geometry as geom
-from geometry import Node, Grid
-
-
-def sign(value):
-    if value > 0:
-        return +1
-    elif value < 0:
-        return -1
-    return 0
+from geometry import Node, Grid, Polygon
 
 
 class TestNodeClass(unittest.TestCase):
@@ -109,6 +106,92 @@ class TestCounterclockwise(unittest.TestCase):
 
         # Assert.
         self.assertEqual(expected_sign, actual_sign)
+
+
+class TestBoundingBox(unittest.TestCase):
+
+    def test_bounding_box_square(self):
+        """
+        Test the bounding_box() function
+        """
+        # Arrange
+        side_length = 4
+        points = np.array([[0,0], [0, side_length], [side_length, 0], [side_length, side_length]])
+
+        # Act
+        expected = (0,0), (side_length, side_length)
+        actual = geom.bounding_box(points)
+
+        # Assert
+        self.assertEqual(actual, expected)
+
+    def test_bounding_box_nonconvex(self):
+        # Arrange
+        points = np.array([[0,0], [-1,-1], [0, -2], [-2, -2], [-2,0]])
+
+        # Act
+        expected = (-2,-2), (0, 0)
+        actual = geom.bounding_box(points)
+
+        # Assert
+        self.assertEqual(actual, expected)
+
+        # self.assertRaises(Va  lueError, geom.bounding_box, points)
+
+    def test_bounding_box_no_area(self):
+        """
+        Test the bounding_box() with the a shape with no area
+        """
+        # Arrange
+        points = np.array([[0,0], [0,0], [0,0], [0,0]])
+
+        # Act
+        expected = (0,0),(0,0)
+        actual = geom.bounding_box(points)
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+
+class TestPolygon(unittest.TestCase):
+    def test_convex_polygon(self):
+        # Arrange
+        square = Polygon(make_square_vertices())
+        expected = True
+        actual = square.is_convex()
+        self.assertEqual(expected, actual)
+
+    def test_nonconvex_polygon(self):
+        nonconvex = Polygon([[0,0], [-1,-1], [0, -2], [-2, -2], [-2,0]])
+
+        expected = False
+        actual = nonconvex.convex
+        self.assertEqual(actual, expected)
+
+    def test_point_is_in_square_polygon(self):
+        square = Polygon(make_square_vertices())
+        # Assert
+        expected = True
+        actual = square.point_in_convex_polygon((1,1))
+
+        self.assertEqual(expected, actual)
+
+    def test_point_not_in_square_polygon(self):
+        # Arrange
+        square = Polygon(make_square_vertices())
+
+        # Act
+        expected = False
+        actual = square.point_in_convex_polygon((3,3))
+
+        # Assert
+        self.assertEqual(expected, actual)
+
+    def test_point_on_polygon_edge(self):
+        pass
+
+    def test_point_in_nonconvex_polygon(self):
+        pass
 
 
 if __name__ == '__main__':

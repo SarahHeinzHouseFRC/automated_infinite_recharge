@@ -4,7 +4,6 @@
 
 import numpy as np
 from collections import defaultdict
-import matplotlib.pyplot as plt
 
 
 class Node:
@@ -209,7 +208,7 @@ def a_star(grid, start, goal):
 
 def bounding_box(points):
     """
-    Takes a list of points and returns a tuple (min_x, max_x, min_y, max_y)
+    Takes a list of points and returns a tuple (min_x, max_x), (min_y, max_y)
     """
     min_x, min_y = np.min(points, axis=0)
     max_x, max_y = np.max(points, axis=0)
@@ -372,10 +371,31 @@ def ccw(a, b, c):
 
 class Polygon:
     def __init__(self, vertices):
+        """
+        Assumes the vertices are arranged in counterclockwise order
+        """
         self.vertices = vertices
         self.center = np.average(self.vertices, axis=0)
+        self.convex = self.is_convex()
+
+    def is_convex(self):
+        """
+        Walks through the vertices making sure there are no right turns
+        """
+        for i in range(len(self.vertices)):
+            # get consecutice point paris
+            p1 = self.vertices[i - 2]
+            p2 = self.vertices[i - 1]
+            p3 = self.vertices[i]
+            # if points not ccw, return false
+            if ccw(p1, p2, p3) > 0:
+                return False
+        return True
 
     def point_in_convex_polygon(self, point):
+        if not self.is_convex:
+            raise ValueError("only pass convex shapes")
+
         for i in range(len(self.vertices)):
             # get consecutice point paris
             p1 = self.vertices[i - 1]
