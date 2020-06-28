@@ -71,8 +71,8 @@ class Controls:
         desired_heading = np.arctan2(vec_start_to_goal[1], vec_start_to_goal[0]) % (2*np.pi)
 
         # If we're not facing the right way, turn in place. Else move straight.
-        left_drive_motor_speed = 50 * direction
-        right_drive_motor_speed = 50 * direction
+        left_drive_motor_speed = 25 * direction
+        right_drive_motor_speed = 25 * direction
 
         margin = 0.25
 

@@ -4,6 +4,7 @@
 
 import numpy as np
 from collections import defaultdict
+import cv2 as cv
 
 
 class Node:
@@ -130,6 +131,26 @@ class Grid:
                 for cell in contact_cells:
                     cell.occupied = True
 
+    def dilate(self, kernel_size=3):
+        """
+        Expand objects on grid by a buffer, equal to amount
+        :param kernel_size: Odd integer to use for sliding window
+        """
+        # 1. Convert the grid into a numpy array
+        src = np.ndarray(self.grid.shape)#, dtype=int)
+        for i in range(self.num_cols):
+            for j in range(self.num_rows):
+                src[i][j] = self.grid[i][j].occupied
+
+        # 2. Call opencv dilate()
+        kernel = np.ones((kernel_size,kernel_size))#,np.uint8)
+        dest = cv.dilate(src, kernel)
+
+        # 3. Copy the dilated data back into our grid
+        for i in range(self.num_cols):
+            for j in range(self.num_rows):
+                self.grid[i][j].occupied = dest[i][j]
+
     def clear(self):
         """
         Marks all nodes as unoccupied and resets all parents
@@ -157,7 +178,6 @@ class Grid:
             return self.grid[col][row]
         else:
             return None
-
 
 def a_star(grid, start, goal):
     """
@@ -393,7 +413,7 @@ class Polygon:
         return True
 
     def point_in_convex_polygon(self, point):
-        if not self.is_convex:
+        if not self.convex:
             raise ValueError("only pass convex shapes")
 
         for i in range(len(self.vertices)):
@@ -409,19 +429,3 @@ class Polygon:
         self.vertices -= self.center
         self.vertices *= factor
         self.vertices += self.center
-
-    def grow_by_buffer(self, buffer):
-        """
-        Grows the polygon by adding a buffer distance all the way around this polygon
-        :param buffer: Buffer distance (meters)
-        """
-        for vertex in self.vertices:
-            # center vertex to make scaling easier
-            cur_dist = dist(vertex, self.center)
-            vertex -= self.center
-
-            scale_factor = (cur_dist+buffer)/cur_dist
-            vertex *= scale_factor
-
-            # move the vertex back relative to its position
-            vertex += self.center

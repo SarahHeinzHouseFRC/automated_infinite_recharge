@@ -23,8 +23,6 @@ class Planning:
                                  config.top_column,
                                  config.bottom_column]
 
-        [obst.grow_by_buffer(0.75) for obst in self.static_obstacles]
-
         self.prev_obstacles = None
         self.grid = geom.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
 
@@ -122,8 +120,8 @@ class Planning:
             (min_x, min_y), (max_x, max_y) = obst
             vertices = np.array([[min_x, min_y], [max_x, min_y], [max_x, max_y], [min_x, max_y]])
             poly = geom.Polygon(vertices)
-            poly.grow_by_buffer(0.75)
-            # self.grid.insert_convex_polygon(poly)
+            self.grid.insert_convex_polygon(poly)
+        self.grid.dilate(kernel_size=7)
 
         # Call A* to generate a path to goal
         if world_state['goal'] is not None:
@@ -132,14 +130,19 @@ class Planning:
             start_node = self.grid.get_cell(start)
             goal_node = self.grid.get_cell(goal)
             node_path = geom.a_star(self.grid, start_node, goal_node)
-            trajectory = [node.position for node in node_path]
-            trajectory[0] = start
-            trajectory[-1] = goal
-            # TODO: FIX THIS!!!
-            if len(trajectory) == 1:
-                trajectory.append(goal)
-            world_state['trajectory'] = trajectory
+            if node_path:
+                trajectory = [node.position for node in node_path]
+                trajectory[0] = start
+                trajectory[-1] = goal
+                # TODO: FIX THIS!!!
+                if len(trajectory) == 1:
+                    trajectory.append(goal)
+                world_state['trajectory'] = trajectory
+            else:
+                ### alternative: we don't have a trajectory, so try again with a different goal?
+                ### node_path = geom.a_star(self.grid, start_node, RANDOM_GOAL_NODE) # the middle?
+                world_state['trajectory'] = [(0,0)] # if we don't know what else to do, go to the middle
         else:
-            world_state['trajectory'] = None
+            world_state['trajectory'] = [(0,0)] # if we don't know what else to do, go to the middle
 
         world_state['grid'] = self.grid
