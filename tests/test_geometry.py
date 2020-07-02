@@ -35,8 +35,8 @@ class TestNodeClass(unittest.TestCase):
 
 class TestGridClass(unittest.TestCase):
     def setUp(self):
-        self.height = 10
-        self.width = 10
+        self.height = 4
+        self.width = 4
         self.cell_resolution = 1
         self.origin = (0, 0)
 
@@ -63,9 +63,17 @@ class TestGridClass(unittest.TestCase):
         expected_num_rows = int(self.height / self.cell_resolution)
         expected_num_cols = int(self.width / self.cell_resolution)
 
-        # Act.
+        # Assert
         self.assertEqual(expected_num_rows, self.grid.num_rows)
         self.assertEqual(expected_num_cols, self.grid.num_cols)
+
+    def test_clear(self):
+        self.grid.clear()
+
+        for col in self.grid.grid:
+            for cell in col:
+                self.assertEqual(cell.parent, None)
+                self.assertEqual(cell.occupied, False)
 
 
 class TestCounterclockwise(unittest.TestCase):

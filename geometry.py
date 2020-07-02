@@ -179,6 +179,7 @@ class Grid:
         else:
             return None
 
+
 def a_star(grid, start, goal):
     """
     Returns a trajectory from start to goal as a list of Nodes or None if no path is found. The returned trajectory will
