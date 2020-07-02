@@ -28,7 +28,6 @@ class Perception:
         """
         # 1. Preprocess sweep
         self.filter_empty_rays(vehicle_state)
-        self.parse_sweep(vehicle_state)
         self.spherical_to_cartesian(vehicle_state)
 
         # 2. Localization
@@ -64,34 +63,14 @@ class Perception:
         range, which represents a ray miss. The result is stored into vehicle_state['lidarSweepFiltered'] as a smaller
         list of dict.
         """
-        sweep = vehicle_state['lidarSweep']
-        filtered_sweep = list()
-        for point in sweep:
-            if point['range'] > 0:
-                filtered_sweep.append(point)
-
-        vehicle_state['lidarSweepFiltered'] = filtered_sweep
-
-    def parse_sweep(self, vehicle_state):
-        """
-        Converts the sweep stored in vehicle_state['lidarSweepFiltered'] from a list of dict with fields 'azimuth',
-        'elevation', and 'range' to an Nx3 numpy array. Result is stored into vehicle_state['lidarSweepParsed'].
-        """
-        sweep = vehicle_state['lidarSweepFiltered']
-        num_pts = len(sweep)
-        parsed = np.empty((num_pts, 3))
-        for i in range(num_pts):
-            parsed[i][0] = sweep[i]['azimuth']
-            parsed[i][1] = sweep[i]['elevation']
-            parsed[i][2] = sweep[i]['range']
-        vehicle_state['lidarSweepParsed'] = parsed
+        vehicle_state['lidarSweepFiltered'] = [point for point in vehicle_state['lidarSweep'] if point[2] > 0]
 
     def spherical_to_cartesian(self, vehicle_state):
         """
         Converts the sweep stored in vehicle_state['lidarSweepParsed'] from an Nx3 numpy array of spherical coordinates
         to an Nx2 array of Cartesian coordinates. Result is stored into vehicle_state['lidarSweepCartesian'].
         """
-        spherical_sweep = vehicle_state['lidarSweepParsed']
+        spherical_sweep = np.array(vehicle_state['lidarSweepFiltered'])
         azimuths = spherical_sweep[:, 0]
         elevations = spherical_sweep[:, 1]
         ranges = spherical_sweep[:, 2]

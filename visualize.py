@@ -48,7 +48,7 @@ class Visualize:
                 'shape': 'line',
                 'text': 'path',
                 'color': 'green',
-                'vertices': [{'x': point[0], 'y': point[1]} for point in plan_state['trajectory']]
+                'vertices': [[point[0], point[1]] for point in plan_state['trajectory']]
             })
 
         # Draw grid
