@@ -57,7 +57,7 @@ class Controls:
     def run(self, plan_state, vehicle_commands):
         curr_time = time.time()
 
-        if plan_state['trajectory'] is None:
+        if plan_state['trajectory'] is None or len(plan_state['trajectory']) < 2:
             return
 
         pose = plan_state['pose']

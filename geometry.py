@@ -256,10 +256,14 @@ class Cell:
 
     def get_neighbors(self):
         # Returns IDs of neighboring cells
-        return [(self.x-1,self.y),
-                (self.x+1,self.y),
+        return [(self.x+1,self.y),
+                (self.x+1,self.y+1),
+                (self.x,self.y+1),
+                (self.x-1,self.y+1),
+                (self.x-1,self.y),
+                (self.x-1,self.y-1),
                 (self.x,self.y-1),
-                (self.x,self.y+1)]
+                (self.x+1,self.y-1)]
 
 
 def connected_components(buckets):

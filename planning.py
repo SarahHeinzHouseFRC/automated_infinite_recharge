@@ -113,14 +113,11 @@ class Planning:
         # Insert dynamic obstacles
         dynamic_obstacles = world_state['obstacles']['others']
         for obst in dynamic_obstacles:
-            # self.grid.insert_rectangular_obstacle(obst)
-            (min_x, min_y), (max_x, max_y) = obst
-            vertices = np.array([[min_x, min_y], [max_x, min_y], [max_x, max_y], [min_x, max_y]])
-            poly = geom.Polygon(vertices)
-            self.grid.insert_convex_polygon(poly)
-        self.grid.dilate(kernel_size=7)
+            self.grid.insert_rectangular_obstacle(obst)
+        self.grid.dilate(kernel_size=5)
 
         # Call A* to generate a path to goal
+        trajectory = None
         if world_state['goal'] is not None:
             start = world_state['pose'][0]
             goal = world_state['goal']
@@ -131,15 +128,6 @@ class Planning:
                 trajectory = [node.position for node in node_path]
                 trajectory[0] = start
                 trajectory[-1] = goal
-                # TODO: FIX THIS!!!
-                if len(trajectory) == 1:
-                    trajectory.append(goal)
-                world_state['trajectory'] = trajectory
-            else:
-                ### alternative: we don't have a trajectory, so try again with a different goal?
-                ### node_path = geom.a_star(self.grid, start_node, RANDOM_GOAL_NODE) # the middle?
-                world_state['trajectory'] = [(0,0)] # if we don't know what else to do, go to the middle
-        else:
-            world_state['trajectory'] = [(0,0)] # if we don't know what else to do, go to the middle
 
+        world_state['trajectory'] = trajectory
         world_state['grid'] = self.grid
