@@ -75,14 +75,27 @@ class TestGridClass(unittest.TestCase):
                 self.assertEqual(cell.parent, None)
                 self.assertEqual(cell.occupied, False)
 
+    def test_get_cell_valid(self):
+        cell = self.grid.get_cell((0.5, 0.5))
+
+        expected = self.grid.grid[2, 2]
+        actual = cell
+
+        self.assertEqual(expected, actual)
+
+    def test_get_cell_invalid(self):
+        cell = self.grid.get_cell((10, 10))
+
+        self.assertIsNone(cell)
+
     def test_insert_rectangular_obstacle(self):
         rect = ((1, 1), (1.5, 1.5))
 
-        self.grid.insert_rectangular_obstacles([rect])
+        self.grid.insert_rectangular_obstacle(rect)
 
         expected = [False] * 15 + [True]
         actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
     def test_insert_convex_polygon_with_square_obstacle(self):
         vertices = make_square_vertices(side_length=0.5, center=(1.25, 1.25))
@@ -92,13 +105,12 @@ class TestGridClass(unittest.TestCase):
 
         expected = [False] * 15 + [True]
         actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
     def test_insert_convex_polygon_with_circular_obstacle(self):
-        vertices = make_circular_vertices(radius=0.75)
-        rect = Polygon(vertices)
+        circle = Polygon(make_circular_vertices(radius=1, center=(0, 0), num_pts=8))
 
-        self.grid.insert_convex_polygon(rect)
+        self.grid.insert_convex_polygon(circle)
 
         expected = [False] * 16
         expected[5] = True
@@ -106,7 +118,24 @@ class TestGridClass(unittest.TestCase):
         expected[9] = True
         expected[10] = True
         actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
+
+    def test_dilation_of_empty_grid(self):
+        self.grid.dilate(kernel_size=3)
+
+        expected = [False] * 16
+        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
+
+        self.assertEqual(expected, actual)
+
+    def test_dilation_of_single_cell(self):
+        self.grid.grid[1, 1].occupied = True
+        self.grid.dilate(kernel_size=3)
+
+        expected = [True]*3 + [False] + [True]*3 + [False] + [True]*3 + [False]*5
+        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
+
+        self.assertEqual(expected, actual)
 
 
 class TestCounterclockwise(unittest.TestCase):
@@ -128,9 +157,7 @@ class TestCounterclockwise(unittest.TestCase):
         # Assert.
         self.assertEqual(expected_ccw_value, actual_ccw_value)
 
-    def test_ccw_returns_positive_value_when_angle_formed_has_positive_orientation(
-            self,
-    ):
+    def test_ccw_returns_positive_value_when_angle_formed_has_positive_orientation(self):
         # Act.
         expected_sign = sign(np.cross(self.p1_to_p2, self.p1_to_p4))
         actual_sign = sign(geom.ccw(self.p2, self.p1, self.p4))
@@ -138,9 +165,7 @@ class TestCounterclockwise(unittest.TestCase):
         # Assert.
         self.assertEqual(expected_sign, actual_sign)
 
-    def test_ccw_returns_negative_value_when_angle_formed_has_negative_orientation(
-            self,
-    ):
+    def test_ccw_returns_negative_value_when_angle_formed_has_negative_orientation(self):
         # Act.
         expected_sign = sign(np.cross(self.p1_to_p4, self.p1_to_p2))
         actual_sign = sign(geom.ccw(self.p4, self.p1, self.p2))
@@ -164,7 +189,7 @@ class TestBoundingBox(unittest.TestCase):
         actual = geom.bounding_box(points)
 
         # Assert
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
     def test_bounding_box_nonconvex(self):
         # Arrange
@@ -175,7 +200,7 @@ class TestBoundingBox(unittest.TestCase):
         actual = geom.bounding_box(points)
 
         # Assert
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
         # self.assertRaises(Va  lueError, geom.bounding_box, points)
 
@@ -209,7 +234,7 @@ class TestPolygon(unittest.TestCase):
 
         expected = False
         actual = nonconvex.convex
-        self.assertEqual(actual, expected)
+        self.assertEqual(expected, actual)
 
     def test_point_is_in_square_polygon(self):
         square = Polygon(make_square_vertices())

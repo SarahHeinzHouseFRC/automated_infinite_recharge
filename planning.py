@@ -109,14 +109,11 @@ class Planning:
         # Insert static obstacles
         for static_obstacle in self.static_obstacles:
             self.grid.insert_convex_polygon(static_obstacle)
-        # triangle_vertices = np.array([[-5, -8], [-3, -8], [-4, -7]])
-        # self.grid.insert_convex_polygon(Polygon(triangle_vertices))
-        # rect_vertices = np.array([[-4, 0], [0, 0], [0, 4], [-4, 4]])
-        # self.grid.insert_convex_polygon(Polygon(rect_vertices))
 
         # Insert dynamic obstacles
         dynamic_obstacles = world_state['obstacles']['others']
         for obst in dynamic_obstacles:
+            # self.grid.insert_rectangular_obstacle(obst)
             (min_x, min_y), (max_x, max_y) = obst
             vertices = np.array([[min_x, min_y], [max_x, min_y], [max_x, max_y], [min_x, max_y]])
             poly = geom.Polygon(vertices)

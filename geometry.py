@@ -77,20 +77,57 @@ class Grid:
                 if x > min_col and y > min_row:
                     node.neighbors.add(self.grid[x-1][y-1])
 
-    def insert_rectangular_obstacles(self, obstacles):
+    def clear(self):
         """
-        Find the grid cells corresponding to each obstacle and marks them as occupied.
-        :param obstacles: List of rectangular obstacles where each obstacle is ((min_x, min_y), (max_x, max_y))
+        Marks all nodes as unoccupied and resets all parents
         """
-        for ((min_x, min_y), (max_x, max_y)) in obstacles:
-            min_col = int((min_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
-            max_col = int((max_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
-            min_row = int((min_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
-            max_row = int((max_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
+        for col in self.grid:
+            for cell in col:
+                cell.clear()
 
-            for col in range(min_col, max_col+1):
-                for row in range(min_row, max_row+1):
-                    self.grid[col][row].occupied = True
+    def get_cell(self, point):
+        """
+        Queries the grid to return the cell containing the given point, or None if out-of-bounds
+        :param point: A point as tuple(x, y)
+        :return: The node corresponding to the given point
+        """
+        # Error-checking
+        x = point[0]
+        y = point[1]
+        min_x = self.origin[0] - (self.width / 2)
+        max_x = self.origin[0] + (self.width / 2)
+        min_y = self.origin[1] - (self.height / 2)
+        max_y = self.origin[1] + (self.height / 2)
+        if min_x <= x < max_x and min_y <= y < max_y:
+            col = int((x - min_x) / self.cell_resolution)
+            row = int((y - min_y) / self.cell_resolution)
+            return self.grid[col][row]
+        else:
+            return None
+
+    def get_region(self, bbox):
+        """
+        Returns the min/max column and row indices corresponding to the given bounding box
+        :param bbox: Bounding box in the form ((min_x, min_y), (max_x, max_y))
+        :return: Region as (min_col, max_col, min_row, max_row)
+        """
+        (min_x, min_y), (max_x, max_y) = bbox
+        min_col = int((min_x + self.origin[0]) / self.cell_resolution + self.num_cols / 2)
+        max_col = int((max_x + self.origin[0]) / self.cell_resolution + self.num_cols / 2)
+        min_row = int((min_y + self.origin[1]) / self.cell_resolution + self.num_rows / 2)
+        max_row = int((max_y + self.origin[1]) / self.cell_resolution + self.num_rows / 2)
+        return min_col, min_row, max_col, max_row
+
+    def insert_rectangular_obstacle(self, obstacle):
+        """
+        Finds the grid cells corresponding to the given obstacle and marks them as occupied.
+        :param obstacle: A rectangular obstacle in the form ((min_x, min_y), (max_x, max_y))
+        """
+        min_col, min_row, max_col, max_row = self.get_region(obstacle)
+
+        for col in range(min_col, max_col+1):
+            for row in range(min_row, max_row+1):
+                self.grid[col][row].occupied = True
 
     def insert_convex_polygon(self, polygon):
         """
@@ -98,11 +135,7 @@ class Grid:
         :param polygon: A Polygon type
         """
         # 1. Find the sub grid to iterate over
-        (min_x, min_y), (max_x, max_y) = bounding_box(polygon.vertices)
-        min_col = int((min_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
-        max_col = int((max_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
-        min_row = int((min_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
-        max_row = int((max_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
+        min_col, min_row, max_col, max_row = self.get_region(bounding_box(polygon.vertices))
 
         # 2. Iterate over each column
         for col in self.grid[min_col:max_col+1, min_row:max_row+1]:
@@ -156,34 +189,6 @@ class Grid:
             for j in range(self.num_rows):
                 self.grid[i][j].occupied = dest[i][j]
 
-    def clear(self):
-        """
-        Marks all nodes as unoccupied and resets all parents
-        """
-        for col in self.grid:
-            for cell in col:
-                cell.clear()
-
-    def get_cell(self, point):
-        """
-        Queries the grid to return the cell containing the given point, or None if out-of-bounds
-        :param point: A point as tuple(x, y)
-        :return: The node corresponding to the given point
-        """
-        # Error-checking
-        x = point[0]
-        y = point[1]
-        min_x = self.origin[0] - (self.width / 2)
-        max_x = self.origin[0] + (self.width / 2)
-        min_y = self.origin[1] - (self.height / 2)
-        max_y = self.origin[1] + (self.height / 2)
-        if min_x <= x < max_x and min_y <= y < max_y:
-            col = int((x - min_x) / self.cell_resolution)
-            row = int((y - min_y) / self.cell_resolution)
-            return self.grid[col][row]
-        else:
-            return None
-
 
 def a_star(grid, start, goal):
     """
@@ -234,7 +239,7 @@ def a_star(grid, start, goal):
 
 def bounding_box(points):
     """
-    Takes a list of points and returns a tuple (min_x, max_x), (min_y, max_y)
+    Takes a list of points and returns a tuple (min_x, min_y), (max_x, max_y)
     """
     min_x, min_y = np.min(points, axis=0)
     max_x, max_y = np.max(points, axis=0)

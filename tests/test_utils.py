@@ -34,8 +34,8 @@ def make_circular_vertices(radius=2, center=(0,0), num_pts=8):
     points = []
     for i in range(num_pts):
         theta = (i / num_pts) * 2*np.pi
-        x = radius * np.cos(theta)
-        y = radius * np.sin(theta)
+        x = radius * np.cos(theta) + center[0]
+        y = radius * np.sin(theta) + center[1]
         points.append([x, y])
 
     return points
