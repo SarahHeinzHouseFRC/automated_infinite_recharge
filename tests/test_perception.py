@@ -17,6 +17,35 @@ class TestPreprocessSweep(unittest.TestCase):
         self.config.field_elements = [Polygon(make_square_vertices())]
         self.perception = Perception(self.config)
 
+    def test_filter_empty_rays(self):
+        vehicle_state = {
+            'lidarSweep': [[0, 0, 0], [0, 0, 1], [0, 0, 2]]
+        }
+        self.perception.filter_empty_rays(vehicle_state)
+
+        expected = [[0, 0, 1], [0, 0, 2]]
+        actual = vehicle_state['lidarSweepFiltered']
+
+        self.assertEqual(expected, actual)
+
+    def test_spherical_to_cartesian(self):
+        vehicle_state = {
+            'lidarSweepFiltered': [[0, 0, 1], [np.pi/2, 0, 1]]
+        }
+        self.perception.spherical_to_cartesian(vehicle_state)
+
+        expected = np.array([[1, 0], [0, 1]])
+        actual = vehicle_state['lidarSweepCartesian']
+
+        np.testing.assert_array_almost_equal(expected, actual)
+
+
+class TestLocalization(unittest.TestCase):
+    def setUp(self):
+        self.config = Mock()
+        self.config.field_elements = [Polygon(make_square_vertices())]
+        self.perception = Perception(self.config)
+
     def test_robot_centered_on_field_gives_back_same_points(self):
         # Arrange
         vehicle_state = {
@@ -76,6 +105,13 @@ class TestSegmentation(unittest.TestCase):
         actual = len(vehicle_state['clusters'])
         self.assertEqual(expected, actual)
 
+
+class TestClassification(unittest.TestCase):
+    def setUp(self):
+        self.config = Mock()
+        self.config.field_elements = [Polygon(make_square_vertices())]
+        self.perception = Perception(self.config)
+
     def test_classification_of_circular_points_right_size(self):
         vehicle_state = {
             'clusters': [np.array(make_circular_vertices(radius=3.55*IN_TO_M))]
@@ -105,6 +141,52 @@ class TestSegmentation(unittest.TestCase):
 
         self.assertEqual(len(vehicle_state['classes']['balls']), 0)
         self.assertEqual(len(vehicle_state['classes']['others']), 1)
+
+
+class TestRun(unittest.TestCase):
+    def setUp(self):
+        self.config = Mock()
+        self.config.field_elements = [Polygon(make_square_vertices(side_length=2, center=(-5, -5)))]
+        self.perception = Perception(self.config)
+
+    def test_run(self):
+        lidar_sweep = [[0, 0, 5], [0, 0, 5.1], [0, 0, 5.2], [0, 0, 5.3], [0, 0, 3.55 * IN_TO_M], [np.pi / 2, 0, 3.55*IN_TO_M], [np.pi, 0, 3.55*IN_TO_M], [3*np.pi / 2, 0, 3.55*IN_TO_M]]
+        #
+        # lidar_sweep.append(make_linear_vertices(start=(5,5), end=(10,10), num_pts=10))
+        # lidar_sweep.append(make_circular_vertices(radius=3.55*IN_TO_M, center=(2, 2)))
+        # lidar_sweep.append([])
+
+        x = 0
+        y = 0
+        theta = 0
+        ingested_balls = 0
+        vehicle_state = {
+            'x': x,
+            'y': y,
+            'theta': theta,
+            'lidarSweep': lidar_sweep,
+            'ingestedBalls': ingested_balls
+        }
+
+        world_state = self.perception.run(vehicle_state)
+
+        actual_balls = world_state['obstacles']['balls']
+        actual_first_ball = actual_balls[0]
+        actual_first_ball_position = actual_first_ball[0]
+        actual_first_ball_radius = actual_first_ball[1]
+        actual_others = world_state['obstacles']['others']
+        expected_balls = [((0, 0), 3.55*IN_TO_M)]
+        expected_others = [((5.0, 0.0), (5.3, 0.0))]
+        expected_first_ball = expected_balls[0]
+        expected_first_ball_position = expected_first_ball[0]
+        expected_first_ball_radius = expected_first_ball[1]
+
+        self.assertEqual(len(expected_balls), len(actual_balls))
+        self.assertAlmostEqual(expected_first_ball_position[0], actual_first_ball_position[0])
+        self.assertAlmostEqual(expected_first_ball_position[1], actual_first_ball_position[1])
+        self.assertEqual(expected_first_ball_radius, actual_first_ball_radius)
+
+        self.assertEqual(expected_others, actual_others)
 
 
 if __name__ == '__main__':
