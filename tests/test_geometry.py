@@ -4,7 +4,7 @@
 
 import numpy as np
 import unittest
-from tests.test_utils import sign, make_square_vertices
+from tests.test_utils import *
 import geometry as geom
 from geometry import Node, Grid, Polygon
 
@@ -74,6 +74,39 @@ class TestGridClass(unittest.TestCase):
             for cell in col:
                 self.assertEqual(cell.parent, None)
                 self.assertEqual(cell.occupied, False)
+
+    def test_insert_rectangular_obstacle(self):
+        rect = ((1, 1), (1.5, 1.5))
+
+        self.grid.insert_rectangular_obstacles([rect])
+
+        expected = [False] * 15 + [True]
+        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
+        self.assertEqual(actual, expected)
+
+    def test_insert_convex_polygon_with_square_obstacle(self):
+        vertices = make_square_vertices(side_length=0.5, center=(1.25, 1.25))
+        square = Polygon(vertices)
+
+        self.grid.insert_convex_polygon(square)
+
+        expected = [False] * 15 + [True]
+        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
+        self.assertEqual(actual, expected)
+
+    def test_insert_convex_polygon_with_circular_obstacle(self):
+        vertices = make_circular_vertices(radius=0.75)
+        rect = Polygon(vertices)
+
+        self.grid.insert_convex_polygon(rect)
+
+        expected = [False] * 16
+        expected[5] = True
+        expected[6] = True
+        expected[9] = True
+        expected[10] = True
+        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
+        self.assertEqual(actual, expected)
 
 
 class TestCounterclockwise(unittest.TestCase):

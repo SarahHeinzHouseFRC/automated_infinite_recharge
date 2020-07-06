@@ -97,28 +97,33 @@ class Grid:
         Find the grid cells corresponding to each obstacle and marks them as occupied.
         :param polygon: A Polygon type
         """
-        # img = Image.new('L', (self.num_cols, self.num_rows), 0)
-        # ImageDraw.Draw(img).polygon(polygon, outline=1, fill=1)
-        # mask = numpy.array(img)
+        # 1. Find the sub grid to iterate over
+        (min_x, min_y), (max_x, max_y) = bounding_box(polygon.vertices)
+        min_col = int((min_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
+        max_col = int((max_x + self.origin[0]) / self.cell_resolution + self.num_cols/2)
+        min_row = int((min_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
+        max_row = int((max_y + self.origin[1]) / self.cell_resolution + self.num_rows/2)
 
-        # 1. Iterate over each row in the 'image'
-        for col in self.grid:
+        # 2. Iterate over each column
+        for col in self.grid[min_col:max_col+1, min_row:max_row+1]:
             col_x, _ = col[0].position
-            # 2. In the current col, find all the contact points where the current col intersects with the polygon
+            # 3. In the current col, find all the contact points where the current col intersects with the polygon
             contact_cells = set()
             for i in range(len(polygon.vertices)):
                 p1 = polygon.vertices[i - 1]
                 p2 = polygon.vertices[i]
                 if p1[0] <= col_x <= p2[0] or p2[0] <= col_x <= p1[0]:
-                # if p1[0] > col_x != p2[0] > col_x:
-                    m = (p2[1]-p1[1])/(p2[0]-p1[0])
+                    # go on to the next edge if this one's slope is undefined
+                    num = p2[1]-p1[1]
+                    den = p2[0]-p1[0]
+                    m = num / (den if den else 1e-5)
                     x = col_x
                     y = m*(x - p1[0]) + p1[1]
                     cell = self.get_cell((x, y))
                     if cell is not None:
                         contact_cells.add(cell)
 
-            # 3. Iterate over the contact points marking each cell in this row as occupied/unoccupied
+            # 4. Iterate over the contact points marking each cell in this row as occupied/unoccupied
             occupied_flag = False
 
             if len(contact_cells) != 1:
