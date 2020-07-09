@@ -69,3 +69,5 @@ sim:
       - [50.00, 314.96]
     blueOuttake: [-61.00, 314.96]
     redOuttake: [61.00, -314.96]
+  gamePiece:
+    radius: 3.50                  # Inches

@@ -7,8 +7,9 @@ import unittest
 from unittest.mock import Mock
 from geometry import Polygon
 from perception import Perception
-from perception import IN_TO_M
 from tests.test_utils import *
+
+BALL_RADIUS = 0.0889
 
 
 class TestPreprocessSweep(unittest.TestCase):
@@ -110,11 +111,12 @@ class TestClassification(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
         self.config.field_elements = [Polygon(make_square_vertices())]
+        self.config.ball_radius = BALL_RADIUS
         self.perception = Perception(self.config)
 
     def test_classification_of_circular_points_right_size(self):
         vehicle_state = {
-            'clusters': [np.array(make_circular_vertices(radius=3.55*IN_TO_M))]
+            'clusters': [np.array(make_circular_vertices(radius=BALL_RADIUS))]
         }
 
         self.perception.classify(vehicle_state)
@@ -147,14 +149,11 @@ class TestRun(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
         self.config.field_elements = [Polygon(make_square_vertices(side_length=2, center=(-5, -5)))]
+        self.config.ball_radius = BALL_RADIUS
         self.perception = Perception(self.config)
 
     def test_run(self):
-        lidar_sweep = [[0, 0, 5], [0, 0, 5.1], [0, 0, 5.2], [0, 0, 5.3], [0, 0, 3.55 * IN_TO_M], [np.pi / 2, 0, 3.55*IN_TO_M], [np.pi, 0, 3.55*IN_TO_M], [3*np.pi / 2, 0, 3.55*IN_TO_M]]
-        #
-        # lidar_sweep.append(make_linear_vertices(start=(5,5), end=(10,10), num_pts=10))
-        # lidar_sweep.append(make_circular_vertices(radius=3.55*IN_TO_M, center=(2, 2)))
-        # lidar_sweep.append([])
+        lidar_sweep = [[0, 0, 5], [0, 0, 5.1], [0, 0, 5.2], [0, 0, 5.3], [0, 0, BALL_RADIUS], [np.pi/2, 0, BALL_RADIUS], [np.pi, 0, BALL_RADIUS], [3*np.pi/2, 0, BALL_RADIUS]]
 
         x = 0
         y = 0
@@ -175,7 +174,7 @@ class TestRun(unittest.TestCase):
         actual_first_ball_position = actual_first_ball[0]
         actual_first_ball_radius = actual_first_ball[1]
         actual_others = world_state['obstacles']['others']
-        expected_balls = [((0, 0), 3.55*IN_TO_M)]
+        expected_balls = [((0, 0), BALL_RADIUS)]
         expected_others = [((5.0, 0.0), (5.3, 0.0))]
         expected_first_ball = expected_balls[0]
         expected_first_ball_position = expected_first_ball[0]

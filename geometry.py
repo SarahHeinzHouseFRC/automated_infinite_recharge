@@ -5,7 +5,6 @@
 import numpy as np
 from collections import defaultdict
 import cv2 as cv
-from perception import IN_TO_M
 
 
 class Node:
@@ -352,7 +351,8 @@ def ransac_circle_fit(points, desired_radius, consensus, tolerance, iterations):
         fit_circle_center = fit_circle[0]
         fit_circle_radius = fit_circle[1]
 
-        if not abs(fit_circle_radius - desired_radius) <= 0.05*IN_TO_M:
+        ball_radius_tolerance = 0.05
+        if not abs(fit_circle_radius - desired_radius) <= ball_radius_tolerance:
             continue
 
         num_inliers = 0

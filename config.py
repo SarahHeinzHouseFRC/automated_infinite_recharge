@@ -45,3 +45,6 @@ class Config:
                                    self.bottom_column]
             self.red_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['redGoalRegion']))
             self.blue_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['blueGoalRegion']))
+
+            # Game pieces
+            self.ball_radius = IN_TO_M * config['sim']['gamePiece']['radius']

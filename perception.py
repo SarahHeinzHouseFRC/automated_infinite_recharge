@@ -6,8 +6,6 @@ import numpy as np
 from collections import defaultdict
 import geometry as geom
 
-IN_TO_M = 0.0254
-
 
 class Perception:
     """
@@ -16,6 +14,7 @@ class Perception:
     def __init__(self, config):
         self.field = config.outer_wall
         self.field_elements = config.field_elements
+        self.ball_radius = config.ball_radius
 
         self.field.scale(0.99)
         for field_element in self.field_elements:
@@ -173,7 +172,7 @@ class Perception:
         others = list()
 
         for cluster in clusters:
-            circle = geom.ransac_circle_fit(cluster, desired_radius=3.5*IN_TO_M, consensus=0.99, tolerance=0.03, iterations=7)
+            circle = geom.ransac_circle_fit(cluster, desired_radius=self.ball_radius, consensus=0.99, tolerance=0.03, iterations=7)
             if circle is not None: # Balls are 3.5" in radius
                 balls.append(circle)
             else:

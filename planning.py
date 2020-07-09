@@ -5,8 +5,6 @@
 import numpy as np
 import geometry as geom
 
-IN_TO_M = 0.0254
-
 
 class Planning:
     def __init__(self, config):
