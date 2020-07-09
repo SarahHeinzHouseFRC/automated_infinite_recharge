@@ -202,17 +202,12 @@ class TestBoundingBox(unittest.TestCase):
         # Assert
         self.assertEqual(expected, actual)
 
-        # self.assertRaises(Va  lueError, geom.bounding_box, points)
-
     def test_bounding_box_no_area(self):
-        """
-        Test the bounding_box() with the a shape with no area
-        """
         # Arrange
-        points = np.array([[0,0], [0,0], [0,0], [0,0]])
+        points = np.array([[4,4], [4,4], [4,4], [4,4]])
 
         # Act
-        expected = (0,0),(0,0)
+        expected = (4,4),(4,4)
         actual = geom.bounding_box(points)
 
         # Assert
@@ -272,6 +267,53 @@ class TestPolygon(unittest.TestCase):
 
         # Assert
         self.assertRaises(ValueError, nonconvex.point_in_convex_polygon, (0,0))
+
+
+class TestCircleFit(unittest.TestCase):
+    def test_make_circle(self):
+        vertices = make_circular_vertices(radius=2, center=(2, 2), num_pts=3)
+
+        circle = geom.make_circle(vertices)
+
+        expected = ((2, 2), 2)
+        expected_center_x = expected[0][0]
+        expected_center_y = expected[0][1]
+        expected_radius = expected[1]
+        actual = circle
+        actual_center_x = actual[0][0]
+        actual_center_y = actual[0][1]
+        actual_radius = actual[1]
+
+        self.assertAlmostEqual(expected_center_x, actual_center_x)
+        self.assertAlmostEqual(expected_center_y, actual_center_y)
+        self.assertAlmostEqual(expected_radius, actual_radius)
+
+    def test_ransac_circle_fit_on_circular_vertices_succeeds(self):
+        points = np.array(make_circular_vertices(radius=2, center=(2, 2), num_pts=8))
+        result = geom.ransac_circle_fit(points, consensus=0.99, tolerance=0.03, iterations=10)
+
+        expected = ((2, 2), 2)
+        expected_center_x = expected[0][0]
+        expected_center_y = expected[0][1]
+        expected_radius = expected[1]
+        actual = result
+        actual_center_x = actual[0][0]
+        actual_center_y = actual[0][1]
+        actual_radius = actual[1]
+
+        self.assertAlmostEqual(expected_center_x, actual_center_x)
+        self.assertAlmostEqual(expected_center_y, actual_center_y)
+        self.assertAlmostEqual(expected_radius, actual_radius)
+
+    def test_ransac_circle_fit_on_linear_vertices_fails(self):
+        points = np.array(make_linear_vertices(start=(2,2), end=(5,5), num_pts=8))
+        result = geom.ransac_circle_fit(points, consensus=0.99, tolerance=0.03, iterations=10)
+
+        self.assertIsNone(result)
+
+    def test_ransac_circle_fit_on_two_points_throws(self):
+        points = np.array(make_circular_vertices(radius=2, center=(2, 2), num_pts=2))
+        self.assertRaises(ValueError, geom.ransac_circle_fit, points, consensus=0.99, tolerance=0.03, iterations=10)
 
 
 if __name__ == '__main__':

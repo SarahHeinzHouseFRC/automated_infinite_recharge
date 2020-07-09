@@ -322,7 +322,7 @@ def connected_components(buckets):
 
 def ransac_circle_fit(points, consensus, tolerance, iterations):
     """
-    Takes N points as an Nx2 array and returns the coordinates of a best-fit circle.
+    Takes N points as an Nx2 array and returns the best-fit circle or None.
     :param points: Nx2 numpy array of points
     :param consensus: How much of a consensus is needed to declare success, 0 < consensus <= 1
     :param tolerance: Tolerance to be declared an inlier of the circle
@@ -332,7 +332,7 @@ def ransac_circle_fit(points, consensus, tolerance, iterations):
 
     # We require at least 3 points to fit a circle
     if len(points) < 3:
-        return None
+        raise ValueError("Circle fit requires at least 3 points")
 
     np.random.seed(10)
     for _ in range(iterations):
@@ -340,7 +340,7 @@ def ransac_circle_fit(points, consensus, tolerance, iterations):
         random_sample = np.random.choice(len(points), 3, replace=False)
 
         # 2. Fit a circle to those points
-        fit_circle = make_circle(points[random_sample[0]], points[random_sample[1]], points[random_sample[2]])
+        fit_circle = make_circle(points[random_sample[0:3]])
 
         # 3. Check all other points in the cluster for consensus
         fit_circle_center = fit_circle[0]
@@ -356,22 +356,17 @@ def ransac_circle_fit(points, consensus, tolerance, iterations):
     return None
 
 
-def dist(p1, p2):
-    """
-    Takes 2 points as array-like and returns the Euclidean distance between them.
-    """
-    x = p2[0] - p1[0]
-    y = p2[1] - p1[1]
-    return np.linalg.norm([x, y])
-
-
-def make_circle(p1, p2, p3):
+def make_circle(points):
     """
     Constructs a circle from 3 points.
     Source: https://www.w3resource.com/python-exercises/basic/python-basic-1-exercise-39.php
-    :param p1, p2, p3: Three 2D points as numpy arrays of shape (2,)
+    :param points: Three 2D points as numpy arrays of shape (2,)
     :return: Circle as tuple(tuple(x, y), radius)
     """
+    p1 = points[0]
+    p2 = points[1]
+    p3 = points[2]
+
     x1 = p1[0]
     x2 = p2[0]
     x3 = p3[0]
@@ -394,6 +389,15 @@ def make_circle(p1, p2, p3):
     r = ar * br * cr / den ** 0.5
 
     return (px, py), r
+
+
+def dist(p1, p2):
+    """
+    Takes 2 points as array-like and returns the Euclidean distance between them.
+    """
+    x = p2[0] - p1[0]
+    y = p2[1] - p1[1]
+    return np.linalg.norm([x, y])
 
 
 def ccw(a, b, c):
