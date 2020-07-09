@@ -288,9 +288,9 @@ class TestCircleFit(unittest.TestCase):
         self.assertAlmostEqual(expected_center_y, actual_center_y)
         self.assertAlmostEqual(expected_radius, actual_radius)
 
-    def test_ransac_circle_fit_on_circular_vertices_succeeds(self):
+    def test_ransac_circle_fit_on_circular_vertices_with_correct_radius_succeeds(self):
         points = np.array(make_circular_vertices(radius=2, center=(2, 2), num_pts=8))
-        result = geom.ransac_circle_fit(points, consensus=0.99, tolerance=0.03, iterations=10)
+        result = geom.ransac_circle_fit(points, desired_radius=2, consensus=0.99, tolerance=0.03, iterations=10)
 
         expected = ((2, 2), 2)
         expected_center_x = expected[0][0]
@@ -305,15 +305,21 @@ class TestCircleFit(unittest.TestCase):
         self.assertAlmostEqual(expected_center_y, actual_center_y)
         self.assertAlmostEqual(expected_radius, actual_radius)
 
+    def test_ransac_circle_fit_on_circular_vertices_with_wrong_radius_fails(self):
+        points = np.array(make_circular_vertices(radius=3, center=(2, 2), num_pts=8))
+        result = geom.ransac_circle_fit(points, desired_radius=2, consensus=0.99, tolerance=0.03, iterations=10)
+
+        self.assertIsNone(result)
+
     def test_ransac_circle_fit_on_linear_vertices_fails(self):
         points = np.array(make_linear_vertices(start=(2,2), end=(5,5), num_pts=8))
-        result = geom.ransac_circle_fit(points, consensus=0.99, tolerance=0.03, iterations=10)
+        result = geom.ransac_circle_fit(points, desired_radius=2, consensus=0.99, tolerance=0.03, iterations=10)
 
         self.assertIsNone(result)
 
     def test_ransac_circle_fit_on_two_points_throws(self):
         points = np.array(make_circular_vertices(radius=2, center=(2, 2), num_pts=2))
-        self.assertRaises(ValueError, geom.ransac_circle_fit, points, consensus=0.99, tolerance=0.03, iterations=10)
+        self.assertRaises(ValueError, geom.ransac_circle_fit, points, desired_radius=2, consensus=0.99, tolerance=0.03, iterations=10)
 
 
 if __name__ == '__main__':

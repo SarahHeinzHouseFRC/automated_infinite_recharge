@@ -114,7 +114,7 @@ class Planning:
         dynamic_obstacles = world_state['obstacles']['others']
         for obst in dynamic_obstacles:
             self.grid.insert_rectangular_obstacle(obst)
-        self.grid.dilate(kernel_size=5)
+        self.grid.dilate(kernel_size=7)
 
         # Call A* to generate a path to goal
         trajectory = None

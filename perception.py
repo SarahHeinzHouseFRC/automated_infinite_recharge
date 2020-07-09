@@ -173,8 +173,8 @@ class Perception:
         others = list()
 
         for cluster in clusters:
-            circle = geom.ransac_circle_fit(cluster, consensus=0.99, tolerance=0.03, iterations=10)
-            if circle is not None and 3.45*IN_TO_M <= circle[1] <= 3.55*IN_TO_M: # Balls are 3.5" in radius
+            circle = geom.ransac_circle_fit(cluster, desired_radius=3.5*IN_TO_M, consensus=0.99, tolerance=0.03, iterations=7)
+            if circle is not None: # Balls are 3.5" in radius
                 balls.append(circle)
             else:
                 # Construct a bounding box and put into others list

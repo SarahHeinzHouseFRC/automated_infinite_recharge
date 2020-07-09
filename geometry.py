@@ -5,6 +5,7 @@
 import numpy as np
 from collections import defaultdict
 import cv2 as cv
+from perception import IN_TO_M
 
 
 class Node:
@@ -202,6 +203,10 @@ def a_star(grid, start, goal):
     start.parent = start  # Just needs to not be None
     queue = [(0, start)]
 
+    # Make sure start and/or goal are not obstructed
+    if start.occupied or goal.occupied:
+        return None
+
     while len(queue) > 0 and goal.parent is None:
         # Pop a node from the queue
         _, cur_node = queue.pop(0)
@@ -320,10 +325,11 @@ def connected_components(buckets):
     return new_clusters
 
 
-def ransac_circle_fit(points, consensus, tolerance, iterations):
+def ransac_circle_fit(points, desired_radius, consensus, tolerance, iterations):
     """
     Takes N points as an Nx2 array and returns the best-fit circle or None.
     :param points: Nx2 numpy array of points
+    :param desired_radius: Desired radius of fit circle
     :param consensus: How much of a consensus is needed to declare success, 0 < consensus <= 1
     :param tolerance: Tolerance to be declared an inlier of the circle
     :param iterations: Max number of iterations to try
@@ -345,6 +351,10 @@ def ransac_circle_fit(points, consensus, tolerance, iterations):
         # 3. Check all other points in the cluster for consensus
         fit_circle_center = fit_circle[0]
         fit_circle_radius = fit_circle[1]
+
+        if not abs(fit_circle_radius - desired_radius) <= 0.05*IN_TO_M:
+            continue
+
         num_inliers = 0
         for point in points:
             if abs(dist(point, fit_circle_center) - fit_circle_radius) <= tolerance:
@@ -416,13 +426,14 @@ class Polygon:
         self.vertices = vertices
         self.center = np.average(self.vertices, axis=0)
         self.convex = self.is_convex()
+        self.bounding_box = bounding_box(self.vertices)
 
     def is_convex(self):
         """
         Walks through the vertices making sure there are no right turns
         """
         for i in range(len(self.vertices)):
-            # get consecutice point paris
+            # get consecutive point pairs
             p1 = self.vertices[i - 2]
             p2 = self.vertices[i - 1]
             p3 = self.vertices[i]
@@ -435,8 +446,15 @@ class Polygon:
         if not self.convex:
             raise ValueError("only pass convex shapes")
 
+        # do bounding box check first to save time
+        x = point[0]
+        y = point[1]
+        (min_x, min_y), (max_x, max_y) = self.bounding_box
+        if not (min_x <= x <= max_x and min_y <= y <= max_y):
+            return False
+
         for i in range(len(self.vertices)):
-            # get consecutice point paris
+            # get consecutive point pairs
             p1 = self.vertices[i - 1]
             p2 = self.vertices[i]
             # if points not ccw, return false
