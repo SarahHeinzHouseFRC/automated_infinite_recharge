@@ -191,10 +191,10 @@ class TestBoundingBox(unittest.TestCase):
 
     def test_bounding_box_nonconvex(self):
         # Arrange
-        points = np.array([[0,0], [-1,-1], [0, -2], [-2, -2], [-2,0]])
+        points = make_square_vertices(side_length=2, center=(0, 0)) + [[0,0]]
 
         # Act
-        expected = (-2,-2), (0, 0)
+        expected = (-1,-1), (1, 1)
         actual = geom.bounding_box(points)
 
         # Assert
@@ -215,14 +215,13 @@ class TestBoundingBox(unittest.TestCase):
 class TestPolygon(unittest.TestCase):
     def test_convex_polygon_convexity(self):
         # Arrange
-        square = Polygon(make_square_vertices())
+        square = Polygon(make_square_vertices(side_length=2, center=(0,0)))
         expected = True
         actual = square.is_convex()
         self.assertEqual(expected, actual)
 
     def test_nonconvex_polygon_convexity(self):
-        vertices = make_square_vertices()
-        vertices.append([0,0])
+        vertices = make_square_vertices(side_length=2, center=(0,0)) + [[0,0]]
         nonconvex = Polygon(vertices)
 
         expected = False
@@ -230,7 +229,7 @@ class TestPolygon(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_point_is_in_square_polygon(self):
-        square = Polygon(make_square_vertices())
+        square = Polygon(make_square_vertices(side_length=2, center=(0,0)))
         # Assert
         expected = True
         actual = square.point_in_convex_polygon((0,0))
@@ -239,7 +238,7 @@ class TestPolygon(unittest.TestCase):
 
     def test_point_not_in_square_polygon(self):
         # Arrange
-        square = Polygon(make_square_vertices())
+        square = Polygon(make_square_vertices(side_length=2, center=(0,0)))
 
         # Act
         expected = False
@@ -250,7 +249,7 @@ class TestPolygon(unittest.TestCase):
 
     def test_point_on_polygon_corner(self):
         # Arrange
-        square = geom.Polygon(make_square_vertices())
+        square = geom.Polygon(make_square_vertices(side_length=2, center=(0,0)))
 
         # Act
         expected = True
@@ -261,10 +260,29 @@ class TestPolygon(unittest.TestCase):
 
     def test_point_in_nonconvex_polygon_throws(self):
         # Arrange
-        nonconvex = geom.Polygon([[0,0], [-1,-1], [0, -2], [-2, -2], [-2,0]])
+        vertices = make_square_vertices(side_length=2, center=(0, 0)) + [[0,0]]
+        nonconvex = geom.Polygon(vertices)
 
         # Assert
         self.assertRaises(ValueError, nonconvex.point_in_convex_polygon, (0,0))
+
+    def test_scale_polygon_by_one_has_same_vertices(self):
+        vertices = make_square_vertices(side_length=2, center=(2,2))
+        polygon = geom.Polygon(vertices)
+        polygon.scale(factor=1)
+
+        expected = vertices
+        actual = polygon.vertices
+        np.testing.assert_array_equal(expected, actual)
+
+    def test_scale_polygon_by_ten(self):
+        polygon = geom.Polygon(make_square_vertices(side_length=2, center=(2,2)))
+        polygon.scale(factor=10)
+
+        expected = make_square_vertices(side_length=20, center=(2,2))
+        actual = polygon.vertices
+
+        np.testing.assert_array_equal(expected, actual)
 
 
 class TestCircleFit(unittest.TestCase):

@@ -15,7 +15,7 @@ BALL_RADIUS = 0.0889
 class TestPreprocessSweep(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
-        self.config.field_elements = [Polygon(make_square_vertices())]
+        self.config.field_elements = [Polygon(make_square_vertices(side_length=2, center=(0,0)))]
         self.perception = Perception(self.config)
 
     def test_filter_empty_rays(self):
@@ -44,7 +44,7 @@ class TestPreprocessSweep(unittest.TestCase):
 class TestLocalization(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
-        self.config.field_elements = [Polygon(make_square_vertices())]
+        self.config.field_elements = [Polygon(make_square_vertices(side_length=2, center=(0,0)))]
         self.perception = Perception(self.config)
 
     def test_robot_centered_on_field_gives_back_same_points(self):
@@ -69,8 +69,8 @@ class TestLocalization(unittest.TestCase):
 class TestSegmentation(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
-        self.config.field_elements = [Polygon(make_square_vertices(side_length=1))]
-        self.config.outer_wall = Polygon(make_square_vertices(side_length=2))
+        self.config.field_elements = [Polygon(make_square_vertices(side_length=1, center=(0,0)))]
+        self.config.outer_wall = Polygon(make_square_vertices(side_length=2, center=(0,0)))
         self.perception = Perception(self.config)
 
     def test_subtract_background(self):
@@ -86,7 +86,7 @@ class TestSegmentation(unittest.TestCase):
 
     def test_clustering_with_n_distant_points_produces_n_clusters(self):
         vehicle_state = {
-            'lidarSweepWorld': np.array(make_square_vertices()),
+            'lidarSweepWorld': np.array(make_square_vertices(side_length=2, center=(0,0))),
             'lidarSweepMask': np.ones(shape=(4,), dtype=bool)
         }
         self.perception.cluster(vehicle_state)
@@ -97,7 +97,7 @@ class TestSegmentation(unittest.TestCase):
 
     def test_clustering_with_close_points_produces_one_cluster(self):
         vehicle_state = {
-            'lidarSweepWorld': np.array(make_square_vertices(side_length=0.1)),
+            'lidarSweepWorld': np.array(make_square_vertices(side_length=0.1, center=(0,0))),
             'lidarSweepMask': np.ones(shape=(4,), dtype=bool)
         }
         self.perception.cluster(vehicle_state)
@@ -110,13 +110,13 @@ class TestSegmentation(unittest.TestCase):
 class TestClassification(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
-        self.config.field_elements = [Polygon(make_square_vertices())]
+        self.config.field_elements = [Polygon(make_square_vertices(side_length=2, center=(0,0)))]
         self.config.ball_radius = BALL_RADIUS
         self.perception = Perception(self.config)
 
     def test_classification_of_circular_points_right_size(self):
         vehicle_state = {
-            'clusters': [np.array(make_circular_vertices(radius=BALL_RADIUS))]
+            'clusters': [np.array(make_circular_vertices(radius=BALL_RADIUS, center=(0,0), num_pts=6))]
         }
 
         self.perception.classify(vehicle_state)
@@ -126,7 +126,7 @@ class TestClassification(unittest.TestCase):
 
     def test_classification_of_circular_points_wrong_size(self):
         vehicle_state = {
-            'clusters': [np.array(make_circular_vertices(radius=3.6))]
+            'clusters': [np.array(make_circular_vertices(radius=BALL_RADIUS+0.1, center=(0,0), num_pts=6))]
         }
 
         self.perception.classify(vehicle_state)

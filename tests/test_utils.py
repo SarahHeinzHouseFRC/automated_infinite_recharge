@@ -13,10 +13,10 @@ def sign(value):
     return 0
 
 
-def make_square_vertices(side_length=2, center=(0,0)):
+def make_square_vertices(side_length, center):
     """
-    Simple helper function that returns 4 points in counterclockwise order that form a square with sides of length s
-    centered at (0,0)
+    Simple helper function that returns 4 points in counterclockwise order that form a square with the given side length
+    and center.
     """
     s = side_length / 2
     x = center[0]
@@ -26,7 +26,7 @@ def make_square_vertices(side_length=2, center=(0,0)):
     return vertices
 
 
-def make_circular_vertices(radius=2, center=(0,0), num_pts=8):
+def make_circular_vertices(radius, center, num_pts):
     """
     Simple helper function that returns points in counterclockwise order that form a circle with the given radius,
     center, and number of points.
@@ -41,7 +41,7 @@ def make_circular_vertices(radius=2, center=(0,0), num_pts=8):
     return points
 
 
-def make_linear_vertices(start, end, num_pts=3):
+def make_linear_vertices(start, end, num_pts):
     """
     Helper function that returns points in a straight line from start to end.
     :param start: 2x1 array-like
