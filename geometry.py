@@ -21,6 +21,9 @@ class Node:
     def __lt__(self, other):
         return self.position[0] < other.position[0]
 
+    def __str__(self):
+        return f'Node{self.indices}'
+
     def clear(self):
         self.parent = None
 
@@ -62,19 +65,19 @@ class Grid:
         for x in range(self.num_cols):
             for y in range(self.num_rows):
                 node = self.grid[x][y]
-                if x < max_col-1:
+                if x < max_col:
                     node.neighbors.add(self.grid[x+1][y])
                 if x > min_col:
                     node.neighbors.add(self.grid[x-1][y])
-                if y < max_row-1:
+                if y < max_row:
                     node.neighbors.add(self.grid[x][y+1])
                 if y > min_row:
                     node.neighbors.add(self.grid[x][y-1])
-                if x < max_col-1 and y < max_row-1:
+                if x < max_col and y < max_row:
                     node.neighbors.add(self.grid[x+1][y+1])
-                if x > min_col and y < max_row-1:
+                if x > min_col and y < max_row:
                     node.neighbors.add(self.grid[x-1][y+1])
-                if x < max_col-1 and y > min_row:
+                if x < max_col and y > min_row:
                     node.neighbors.add(self.grid[x+1][y-1])
                 if x > min_col and y > min_row:
                     node.neighbors.add(self.grid[x-1][y-1])
@@ -191,7 +194,7 @@ def a_star(grid, start, goal):
     :param grid: Grid object
     :return: List of trajectory points as list(tuple(x, y), ...)
     """
-    start.parent = start  # Just needs to not be None
+    start.parent = start  # Just needs to be something other than None so we don't try to explore it
     queue = [(0, start)]
 
     # Make sure start and/or goal are not obstructed

@@ -285,6 +285,77 @@ class TestPolygon(unittest.TestCase):
         np.testing.assert_array_equal(expected, actual)
 
 
+class TestConnectedComponents(unittest.TestCase):
+    def test_empty_buckets_result_in_one_empty_cc(self):
+        buckets = {
+            (0, 0): [],
+            (1, 0): [],
+            (0, 1): [],
+            (1, 1): [],
+        }
+
+        result = geom.connected_components(buckets)
+
+        expected = 1
+        actual = len(result)
+
+        self.assertEqual(expected, actual)
+
+    def test_all_buckets_filled_result_in_one_large_cc(self):
+        buckets = {
+            (0, 0): [1],
+            (1, 0): [2],
+            (0, 1): [3],
+            (1, 1): [4],
+        }
+
+        result = geom.connected_components(buckets)
+
+        expected = 1
+        actual = len(result)
+
+        self.assertEqual(expected, actual)
+
+        expected = [1, 2, 3, 4]
+        actual = result[0]
+
+        np.testing.assert_array_equal(sorted(expected), sorted(actual))
+
+
+class TestAStar(unittest.TestCase):
+    def setUp(self):
+        self.height = 4
+        self.width = 4
+        self.cell_resolution = 1
+        self.origin = (0, 0)
+        self.grid = Grid(self.width, self.height, self.cell_resolution, self.origin)
+        self.start = self.grid.get_cell((-1.5, -1.5))
+        self.goal = self.grid.get_cell((1.5, 1.5))
+
+    def test_a_star_fails_when_start_occluded(self):
+        self.grid.occupancy[self.start.indices] = 1
+        result = geom.a_star(self.grid, self.start, self.goal)
+        self.assertIsNone(result)
+
+    def test_a_star_fails_when_goal_occluded(self):
+        self.grid.occupancy[self.goal.indices] = 1
+        result = geom.a_star(self.grid, self.start, self.goal)
+        self.assertIsNone(result)
+
+    def test_a_star_succeeds_when_all_cells_unoccupied(self):
+        result = geom.a_star(self.grid, self.start, self.goal)
+        expected = 4
+        actual = len(result)
+        self.assertEqual(expected, actual)
+
+    def test_a_star_fails_when_goal_unreachable(self):
+        self.grid.occupancy[2,3] = 1
+        self.grid.occupancy[2,2] = 1
+        self.grid.occupancy[3,2] = 1
+        result = geom.a_star(self.grid, self.start, self.goal)
+        self.assertIsNone(result)
+
+
 class TestCircleFit(unittest.TestCase):
     def test_make_circle(self):
         vertices = make_circular_vertices(radius=2, center=(2, 2), num_pts=3)
