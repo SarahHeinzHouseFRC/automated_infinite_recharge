@@ -61,8 +61,12 @@ class Visualize:
                 'cellSize': 0.1,
                 'occupancy': []
         }
-        for col in plan_state['grid'].grid:
-            for cell in col:
-                grid_drawer['occupancy'].append(1 if cell.occupied else 0)
+        # for col in plan_state['grid'].grid:
+        #     for cell in col:
+        #         grid_drawer['occupancy'].append(1 if cell.occupied else 0)
+        occupancy = plan_state['grid'].occupancy
+        for col in occupancy:
+            for o in col:
+                grid_drawer['occupancy'].append(int(o))
         draw.append(grid_drawer)
         return draw

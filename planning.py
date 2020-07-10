@@ -88,7 +88,7 @@ class Planning:
             goal = None
             for ball in world_state['obstacles']['balls']:
                 curr_dist = geom.dist(ball[0], start)
-                if curr_dist < min_dist:
+                if curr_dist < min_dist and not self.grid.occupancy[self.grid.get_cell(ball[0]).indices]:
                     min_dist = curr_dist
                     goal = ball[0]
 

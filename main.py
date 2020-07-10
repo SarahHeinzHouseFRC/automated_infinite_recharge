@@ -11,6 +11,7 @@ from perception import Perception
 from planning import Planning
 from controls import Controls
 from visualize import Visualize
+import time
 
 CONFIG_FILE = "config.yml"
 
@@ -45,9 +46,13 @@ def main():
     try:
         while True:
             if len(comms.vehicle_state['lidarSweep']) > 0:
+                t1 = time .time()
                 world_state = perception.run(comms.vehicle_state)
                 plan_state = planning.run(world_state)
                 controls.run(plan_state, comms.vehicle_commands)
+                t2 = time .time()
+                freq = 1 / (t2 - t1)
+                print(f"Running at {freq} Hz")
 
                 comms.vehicle_commands['draw'] = visualize.run(world_state, plan_state)
     except KeyboardInterrupt:

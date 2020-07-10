@@ -8,21 +8,21 @@ import cv2 as cv
 
 
 class Node:
-    def __init__(self, position):
+    def __init__(self, position, indices):
         """
         :param position: Node's position as tuple(x, y)
+        :param indices: Node's indices as tuple(col, row)
         """
         self.position = position
+        self.indices = indices
         self.neighbors = set()
         self.parent = None
-        self.occupied = False
 
     def __lt__(self, other):
         return self.position[0] < other.position[0]
 
     def clear(self):
         self.parent = None
-        self.occupied = False
 
 
 class Grid:
@@ -45,12 +45,14 @@ class Grid:
         self.num_rows = int(self.height / self.cell_resolution)
         self.grid = np.ndarray((self.num_cols, self.num_rows), dtype=Node)
 
+        self.occupancy = np.zeros(self.grid.shape, dtype=np.uint8)
+
         # 1. Create all the nodes
         for col in range(self.num_cols):
             for row in range(self.num_rows):
                 x = (col * self.cell_resolution) + (self.cell_resolution / 2) - self.width / 2
                 y = (row * self.cell_resolution) + (self.cell_resolution / 2) - self.height / 2
-                self.grid[col][row] = Node((x, y))
+                self.grid[col][row] = Node((x, y), (col, row))
 
         # 2. Connect all the neighbors
         min_col = 0
@@ -84,6 +86,8 @@ class Grid:
         for col in self.grid:
             for cell in col:
                 cell.clear()
+
+        self.occupancy.fill(0)
 
     def get_cell(self, point):
         """
@@ -127,7 +131,7 @@ class Grid:
 
         for col in range(min_col, max_col+1):
             for row in range(min_row, max_row+1):
-                self.grid[col][row].occupied = True
+                self.occupancy[col][row] = 1
 
     def insert_convex_polygon(self, polygon):
         """
@@ -161,33 +165,21 @@ class Grid:
 
             if len(contact_cells) != 1:
                 for cell in col:
-                    cell.occupied = occupied_flag or cell.occupied
+                    self.occupancy[cell.indices] = occupied_flag or self.occupancy[cell.indices]
                     if cell in contact_cells:
-                        cell.occupied = True # make sure contact cells are marked as occupied
+                        self.occupancy[cell.indices] = 1  # make sure contact cells are marked as occupied
                         occupied_flag = not occupied_flag
             else:
                 for cell in contact_cells:
-                    cell.occupied = True
+                    self.occupancy[cell.indices] = 1  # make sure contact cells are marked as occupied
 
     def dilate(self, kernel_size=3):
         """
         Expand objects on grid by a buffer, equal to amount
         :param kernel_size: Odd integer to use for sliding window
         """
-        # 1. Convert the grid into a numpy array
-        src = np.ndarray(self.grid.shape)#, dtype=int)
-        for i in range(self.num_cols):
-            for j in range(self.num_rows):
-                src[i][j] = self.grid[i][j].occupied
-
-        # 2. Call opencv dilate()
         kernel = np.ones((kernel_size,kernel_size))#,np.uint8)
-        dest = cv.dilate(src, kernel)
-
-        # 3. Copy the dilated data back into our grid
-        for i in range(self.num_cols):
-            for j in range(self.num_rows):
-                self.grid[i][j].occupied = dest[i][j]
+        self.occupancy = cv.dilate(self.occupancy, kernel)
 
 
 def a_star(grid, start, goal):
@@ -203,7 +195,7 @@ def a_star(grid, start, goal):
     queue = [(0, start)]
 
     # Make sure start and/or goal are not obstructed
-    if start.occupied or goal.occupied:
+    if grid.occupancy[start.indices] or grid.occupancy[goal.indices]:
         return None
 
     while len(queue) > 0 and goal.parent is None:
@@ -213,7 +205,7 @@ def a_star(grid, start, goal):
         # Run through its neighbors
         for neighbor in cur_node.neighbors:
             # If unvisited and not occupied, add it to the queue
-            if neighbor.parent is None and not neighbor.occupied:
+            if neighbor.parent is None and not grid.occupancy[neighbor.indices]:
                 neighbor.parent = cur_node
                 cost = grid.cell_resolution # How much does it cost to get to this neighbor from cur_node?
                 heuristic = dist(neighbor.position, goal.position) # How close is this cell to the goal?
@@ -337,7 +329,7 @@ def ransac_circle_fit(points, desired_radius, consensus, tolerance, iterations):
 
     # We require at least 3 points to fit a circle
     if len(points) < 3:
-        raise ValueError("Circle fit requires at least 3 points")
+        return None
 
     np.random.seed(10)
     for _ in range(iterations):

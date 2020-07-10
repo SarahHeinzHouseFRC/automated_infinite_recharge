@@ -13,24 +13,22 @@ class TestNodeClass(unittest.TestCase):
     def setUp(self):
         self.position1 = (-1, 25)
         self.position2 = (14, 4)
-        self.node1 = Node(self.position1)
-        self.node2 = Node(self.position2)
+        self.node1 = Node(self.position1, (1, 1))
+        self.node2 = Node(self.position2, (2, 2))
 
     def test_init_node_creates_node_with_specified_position(self):
         # Assert.
         self.assertEqual(self.node1.position, self.position1)
 
-    def test_clear_node_clears_occupied_flag_and_removes_parent(self):
+    def test_clear_node_removes_parent(self):
         # Arrange.
         self.node1.parent = self.node2
-        self.node1.occupied = True
 
         # Act.
         self.node1.clear()
 
         # Assert.
         self.assertEqual(self.node1.parent, None)
-        self.assertFalse(self.node1.occupied)
 
 
 class TestGridClass(unittest.TestCase):
@@ -73,7 +71,7 @@ class TestGridClass(unittest.TestCase):
         for col in self.grid.grid:
             for cell in col:
                 self.assertEqual(cell.parent, None)
-                self.assertEqual(cell.occupied, False)
+                self.assertEqual(self.grid.occupancy[cell.indices], False)
 
     def test_get_cell_valid(self):
         cell = self.grid.get_cell((0.5, 0.5))
@@ -93,9 +91,9 @@ class TestGridClass(unittest.TestCase):
 
         self.grid.insert_rectangular_obstacle(rect)
 
-        expected = [False] * 15 + [True]
-        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
-        self.assertEqual(expected, actual)
+        expected = [0] * 15 + [1]
+        actual = self.grid.occupancy.flatten(order='F')
+        np.testing.assert_array_equal(expected, actual)
 
     def test_insert_convex_polygon_with_square_obstacle(self):
         vertices = make_square_vertices(side_length=0.5, center=(1.25, 1.25))
@@ -103,39 +101,39 @@ class TestGridClass(unittest.TestCase):
 
         self.grid.insert_convex_polygon(square)
 
-        expected = [False] * 15 + [True]
-        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
-        self.assertEqual(expected, actual)
+        expected = [0] * 15 + [1]
+        actual = self.grid.occupancy.flatten(order='F')
+        np.testing.assert_array_equal(expected, actual)
 
     def test_insert_convex_polygon_with_circular_obstacle(self):
         circle = Polygon(make_circular_vertices(radius=1, center=(0, 0), num_pts=8))
 
         self.grid.insert_convex_polygon(circle)
 
-        expected = [False] * 16
-        expected[5] = True
-        expected[6] = True
-        expected[9] = True
-        expected[10] = True
-        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
-        self.assertEqual(expected, actual)
+        expected = [0] * 16
+        expected[5] = 1
+        expected[6] = 1
+        expected[9] = 1
+        expected[10] = 1
+        actual = self.grid.occupancy.flatten(order='F')
+        np.testing.assert_array_equal(expected, actual)
 
     def test_dilation_of_empty_grid(self):
         self.grid.dilate(kernel_size=3)
 
-        expected = [False] * 16
-        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
+        expected = [0] * 16
+        actual = self.grid.occupancy.flatten(order='F')
 
-        self.assertEqual(expected, actual)
+        np.testing.assert_array_equal(expected, actual)
 
     def test_dilation_of_single_cell(self):
-        self.grid.grid[1, 1].occupied = True
+        self.grid.occupancy[1][1] = 1
         self.grid.dilate(kernel_size=3)
 
-        expected = [True]*3 + [False] + [True]*3 + [False] + [True]*3 + [False]*5
-        actual = [cell.occupied for cell in self.grid.grid.flatten(order='F')]
+        expected = [1]*3 + [0] + [1]*3 + [0] + [1]*3 + [0]*5
+        actual = self.grid.occupancy.flatten(order='F')
 
-        self.assertEqual(expected, actual)
+        np.testing.assert_array_equal(expected, actual)
 
 
 class TestCounterclockwise(unittest.TestCase):
@@ -317,9 +315,10 @@ class TestCircleFit(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    def test_ransac_circle_fit_on_two_points_throws(self):
+    def test_ransac_circle_fit_on_two_points_returns_none(self):
         points = np.array(make_circular_vertices(radius=2, center=(2, 2), num_pts=2))
-        self.assertRaises(ValueError, geom.ransac_circle_fit, points, desired_radius=2, consensus=0.99, tolerance=0.03, iterations=10)
+        result = geom.ransac_circle_fit(points, desired_radius=2, consensus=0.99, tolerance=0.03, iterations=10)
+        self.assertIsNone(result)
 
 
 if __name__ == '__main__':
