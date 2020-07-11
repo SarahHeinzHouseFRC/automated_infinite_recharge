@@ -46,5 +46,11 @@ class Config:
             self.red_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['redGoalRegion']))
             self.blue_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['blueGoalRegion']))
 
+            self.occupancy_grid_width = 10
+            self.occupancy_grid_height = 16
+            self.occupancy_grid_cell_resolution = 0.1
+            self.occupancy_grid_origin = (0, 0)
+            self.occupancy_grid_dilation_kernel_size = 7
+
             # Game pieces
             self.ball_radius = IN_TO_M * config['sim']['gamePiece']['radius']

@@ -28,7 +28,7 @@ class Node:
         self.parent = None
 
 
-class Grid:
+class OccupancyGrid:
     def __init__(self, width, height, cell_resolution, origin):
         """
         Constructs a list of nodes comprising this rectangular area.
@@ -164,7 +164,7 @@ class Grid:
                         contact_cells.add(cell)
 
             # 4. Iterate over the contact points marking each cell in this row as occupied/unoccupied
-            occupied_flag = False
+            occupied_flag = 0
 
             if len(contact_cells) != 1:
                 for cell in col:
@@ -176,62 +176,80 @@ class Grid:
                 for cell in contact_cells:
                     self.occupancy[cell.indices] = 1  # make sure contact cells are marked as occupied
 
-    def dilate(self, kernel_size=3):
+    def dilate(self, kernel_size):
         """
         Expand objects on grid by a buffer, equal to amount
         :param kernel_size: Odd integer to use for sliding window
         """
-        kernel = np.ones((kernel_size,kernel_size))#,np.uint8)
+        if kernel_size % 2 != 1:
+            raise ValueError("Kernel size must be an odd integer")
+
+        kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
         self.occupancy = cv.dilate(self.occupancy, kernel)
 
 
-def a_star(grid, start, goal):
+def a_star(occupancy_grid, start, goal):
     """
     Returns a trajectory from start to goal as a list of Nodes or None if no path is found. The returned trajectory will
-    start with the start node and end with the goal node
-    :param start: Starting node
-    :param goal: Goal node
-    :param grid: Grid object
+    start with the start node and end with the goal node and is guaranteed to have at least a length of 2.
+    :param occupancy_grid: Occupancy grid
+    :param start: Starting position
+    :param goal: Goal position
     :return: List of trajectory points as list(tuple(x, y), ...)
     """
-    start.parent = start  # Just needs to be something other than None so we don't try to explore it
-    queue = [(0, start)]
+    start_node = occupancy_grid.get_cell(start)
+    goal_node = occupancy_grid.get_cell(goal)
 
-    # Make sure start and/or goal are not obstructed
-    if grid.occupancy[start.indices] or grid.occupancy[goal.indices]:
+    # Trivial case
+    if start_node is goal_node:
+        return [start_node, goal_node]
+
+    start_node.parent = start_node  # Just needs to be something other than None so we don't try to explore it
+    queue = [(0, start_node)]
+
+    # Make sure start_node and/or goal are not obstructed
+    if occupancy_grid.occupancy[start_node.indices] or occupancy_grid.occupancy[goal_node.indices]:
         return None
 
-    while len(queue) > 0 and goal.parent is None:
+    while len(queue) > 0 and goal_node.parent is None:
         # Pop a node from the queue
-        _, cur_node = queue.pop(0)
+        _, curr_node = queue.pop(0)
 
         # Run through its neighbors
-        for neighbor in cur_node.neighbors:
-            # If unvisited and not occupied, add it to the queue
-            if neighbor.parent is None and not grid.occupancy[neighbor.indices]:
-                neighbor.parent = cur_node
-                cost = grid.cell_resolution # How much does it cost to get to this neighbor from cur_node?
-                heuristic = dist(neighbor.position, goal.position) # How close is this cell to the goal?
-                score = heuristic + cost
-                queue.append((score, neighbor))
-                queue.sort()
-            if neighbor == goal:
+        for neighbor in curr_node.neighbors:
+            # If we found the goal, break out
+            if neighbor == goal_node:
+                neighbor.parent = curr_node
                 break
 
-    path = []
-    cur_node = goal
+            # If unvisited and not occupied, add it to the queue
+            if neighbor.parent is None and not occupancy_grid.occupancy[neighbor.indices]:
+                neighbor.parent = curr_node
+                cost = occupancy_grid.cell_resolution  # g(x) = How much does it cost to travel go to this neighbor from curr_node?
+                heuristic = dist(neighbor.position, goal_node.position)  # h(x) = How close is curr_node to the goal?
+                score = heuristic + cost  # f(x) = g(x) + h(x)
+                queue.append((score, neighbor))
+                queue.sort()
 
-    # If no path was found, return none
-    if goal.parent is None:
+    node_path = []
+    curr_node = goal_node
+
+    # If no node_path was found, return none
+    if goal_node.parent is None:
         return None
 
     # Iterate backwards from goal
-    while cur_node != start:
-        path.insert(0, cur_node)
-        cur_node = cur_node.parent
+    while curr_node != start_node:
+        node_path.insert(0, curr_node)
+        curr_node = curr_node.parent
 
-    # Add starting node to path
-    path.insert(0, start)
+    # Add starting node to node_path
+    node_path.insert(0, start_node)
+
+    # Convert list of nodes to a trajectory
+    path = [node.position for node in node_path]
+    path[0] = start
+    path[-1] = goal
 
     return path
 

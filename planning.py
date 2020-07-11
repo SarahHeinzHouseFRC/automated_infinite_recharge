@@ -12,17 +12,14 @@ class Planning:
         self.field_elements = config.field_elements
         self.red_goal_region = config.red_goal_region
         self.blue_goal_region = config.blue_goal_region
-        self.static_obstacles = [config.right_trench_right_wall,
-                                 config.right_trench_left_wall,
-                                 config.left_trench_right_wall,
-                                 config.left_trench_left_wall,
-                                 config.right_column,
-                                 config.left_column,
-                                 config.top_column,
-                                 config.bottom_column]
+        self.static_obstacles = config.field_elements
 
         self.prev_obstacles = None
-        self.grid = geom.Grid(width=10, height=16, cell_resolution=0.1, origin=(0,0))
+        self.occupancy_grid_dilation_kernel_size = config.occupancy_grid_dilation_kernel_size
+        self.occupancy_grid = geom.OccupancyGrid(config.occupancy_grid_width,
+                                                 config.occupancy_grid_height,
+                                                 config.occupancy_grid_cell_resolution,
+                                                 config.occupancy_grid_origin)
 
     def run(self, world_state):
         # 1. Identify the goal
@@ -88,7 +85,7 @@ class Planning:
             goal = None
             for ball in world_state['obstacles']['balls']:
                 curr_dist = geom.dist(ball[0], start)
-                if curr_dist < min_dist and not self.grid.occupancy[self.grid.get_cell(ball[0]).indices]:
+                if curr_dist < min_dist and not self.occupancy_grid.occupancy[self.occupancy_grid.get_cell(ball[0]).indices]:
                     min_dist = curr_dist
                     goal = ball[0]
 
@@ -102,30 +99,25 @@ class Planning:
         trajectory waypoint into world_state['waypoint'].
         """
         # clear the positions previously marked as obstacles because they may have changed
-        self.grid.clear()
+        self.occupancy_grid.clear()
 
         # Insert static obstacles
         for static_obstacle in self.static_obstacles:
-            self.grid.insert_convex_polygon(static_obstacle)
+            self.occupancy_grid.insert_convex_polygon(static_obstacle)
 
         # Insert dynamic obstacles
         dynamic_obstacles = world_state['obstacles']['others']
-        for obst in dynamic_obstacles:
-            self.grid.insert_rectangular_obstacle(obst)
-        self.grid.dilate(kernel_size=7)
+        for dynamic_obstacle in dynamic_obstacles:
+            self.occupancy_grid.insert_rectangular_obstacle(dynamic_obstacle)
+
+        self.occupancy_grid.dilate(kernel_size=self.occupancy_grid_dilation_kernel_size)
 
         # Call A* to generate a path to goal
         trajectory = None
         if world_state['goal'] is not None:
             start = world_state['pose'][0]
             goal = world_state['goal']
-            start_node = self.grid.get_cell(start)
-            goal_node = self.grid.get_cell(goal)
-            node_path = geom.a_star(self.grid, start_node, goal_node)
-            if node_path:
-                trajectory = [node.position for node in node_path]
-                trajectory[0] = start
-                trajectory[-1] = goal
+            trajectory = geom.a_star(self.occupancy_grid, start, goal)
 
         world_state['trajectory'] = trajectory
-        world_state['grid'] = self.grid
+        world_state['grid'] = self.occupancy_grid
