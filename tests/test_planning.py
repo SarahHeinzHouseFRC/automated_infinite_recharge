@@ -9,6 +9,125 @@ from geometry import Polygon
 from tests.test_utils import *
 
 
+class TestBehaviorPlanning(unittest.TestCase):
+    def setUp(self):
+        self.config = Mock()
+        self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
+        self.config.occupancy_grid_width = 6
+        self.config.occupancy_grid_height = 6
+        self.config.occupancy_grid_cell_resolution = 1
+        self.config.occupancy_grid_origin = (0, 0)
+        self.config.occupancy_grid_dilation_kernel_size = 3
+        self.config.lidar_deadzone_radius = 0.85
+
+        self.planning = Planning(self.config)
+
+    def test_robot_runs_intake_and_goes_to_nearest_ball_while_far_from_goal_and_has_fewer_than_five_balls(self):
+        world_state = {
+            'pose': ((0, 0), 0),
+            'ingestedBalls': 0,
+            'obstacles': {
+                'balls': [((2.5, 2.5), 0.1)]
+            }
+        }
+
+        self.planning.behavior_planning(world_state)
+
+        expected = {
+            'goal': (2.5, 2.5),
+            'direction': 1,
+            'tube_mode': 'INTAKE'
+        }
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        self.assertEqual(expected, actual)
+
+    def test_robot_remembers_balls_within_lidar_deadzone(self):
+        world_state = {
+            'pose': ((0, 0), 0),
+            'ingestedBalls': 0,
+            'obstacles': {
+                'balls': [((0.85, 0), 0.1)]
+            }
+        }
+
+        self.planning.behavior_planning(world_state)
+
+        world_state = {
+            'pose': ((0, 0), 0),
+            'ingestedBalls': 0,
+            'obstacles': {
+                'balls': []
+            }
+        }
+
+        self.planning.behavior_planning(world_state)
+
+        expected = {
+            'goal': (0.85, 0),
+            'direction': 1,
+            'tube_mode': 'INTAKE'
+        }
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        self.assertEqual(expected, actual)
+
+    def test_robot_drives_to_goal_backwards_when_it_has_five_balls_and_is_far_from_goal(self):
+        world_state = {
+            'pose': ((0, 0), 0),
+            'ingestedBalls': 5,
+            'obstacles': {
+                'balls': [((2.5, 2.5), 0.1)]
+            }
+        }
+
+        self.planning.behavior_planning(world_state)
+
+        expected = {
+            'goal': self.planning.scoring_zone,
+            'direction': -1,
+            'tube_mode': 'INTAKE'
+        }
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        self.assertEqual(expected, actual)
+
+    def test_robot_scores_when_it_has_five_balls_and_is_at_goal(self):
+        world_state = {
+            'pose': ((-2.5, -2.5), 0),
+            'ingestedBalls': 5,
+            'obstacles': {
+                'balls': [((2.5, 2.5), 0.1)]
+            }
+        }
+
+        self.planning.behavior_planning(world_state)
+
+        expected = {
+            'goal': self.planning.scoring_zone,
+            'direction': 0,
+            'tube_mode': 'OUTTAKE'
+        }
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        self.assertEqual(expected, actual)
+
+    def test_robot_stays_at_goal_while_scoring(self):
+        world_state = {
+            'pose': ((-2.5, -2.5), 0),
+            'ingestedBalls': 4,
+            'obstacles': {
+                'balls': [((2.5, 2.5), 0.1)]
+            }
+        }
+
+        self.planning.behavior_planning(world_state)
+
+        expected = {
+            'goal': self.planning.scoring_zone,
+            'direction': 0,
+            'tube_mode': 'OUTTAKE'
+        }
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        self.assertEqual(expected, actual)
+
+
 class TestMotionPlanning(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
@@ -18,6 +137,7 @@ class TestMotionPlanning(unittest.TestCase):
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
+        self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -2.5)))
 
         self.pose = ((-2.5, -2.5), 0)
         self.goal = (2.5, 2.5)
@@ -44,7 +164,7 @@ class TestMotionPlanning(unittest.TestCase):
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
 
     def test_motion_planning_avoids_static_obstacle(self):
-        self.planning.static_obstacles = [Polygon(make_square_vertices(side_length=1.5, center=(0,0)))]
+        self.planning.field_elements = [Polygon(make_square_vertices(side_length=1.5, center=(0,0)))]
 
         world_state = {
             'obstacles': {
@@ -113,6 +233,37 @@ class TestMotionPlanning(unittest.TestCase):
 
         expected = 2
         actual = len(world_state['trajectory'])
+        self.assertEqual(expected, actual)
+
+
+class TestRun(unittest.TestCase):
+    def setUp(self):
+        self.config = Mock()
+        self.config.field_elements = []
+        self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
+        self.config.occupancy_grid_width = 6
+        self.config.occupancy_grid_height = 6
+        self.config.occupancy_grid_cell_resolution = 1
+        self.config.occupancy_grid_origin = (0, 0)
+        self.config.occupancy_grid_dilation_kernel_size = 3
+
+        self.planning = Planning(self.config)
+
+    def test_run(self):
+        world_state = {
+            'pose': ((-2.5, -2.5), 0),
+            'obstacles': {
+                'balls': [((2.5, 2.5), 0.1)],
+                'others': [],
+            },
+            'ingestedBalls': 0,
+        }
+
+        self.planning.run(world_state)
+
+        expected = 6
+        actual = len(world_state['trajectory'])
+
         self.assertEqual(expected, actual)
 
 

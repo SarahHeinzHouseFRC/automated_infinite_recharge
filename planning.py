@@ -12,7 +12,7 @@ class Planning:
         self.field_elements = config.field_elements
         self.red_goal_region = config.red_goal_region
         self.blue_goal_region = config.blue_goal_region
-        self.static_obstacles = config.field_elements
+        self.scoring_zone = self.blue_goal_region.center + np.array([0, 1])
 
         self.prev_obstacles = None
         self.occupancy_grid_dilation_kernel_size = config.occupancy_grid_dilation_kernel_size
@@ -20,6 +20,8 @@ class Planning:
                                                  config.occupancy_grid_height,
                                                  config.occupancy_grid_cell_resolution,
                                                  config.occupancy_grid_origin)
+
+        self.deadzone_radius = config.lidar_deadzone_radius
 
     def run(self, world_state):
         # 1. Identify the goal
@@ -42,41 +44,33 @@ class Planning:
         """
         Identifies a goal state and places it into world_state['goal'].
 
-        Also identify what action we want to take, as world_state['tube_mode'] which
-        is one of 'INTAKE', 'OUTTAKE', 'NONE'. Also identify which direction to drive in,
-        one of '1', '-1', or '0'
+        Also identifies whether to run the intake or outtake and places it into world_state['tube_mode'] as
+        one of 'INTAKE', 'OUTTAKE', 'NONE'.
+
+        Also identifies which direction to drive in, one of '1', '-1', or '0'
         """
         start = world_state['pose'][0]  # Our current (x,y)
-        scoring_zone = (self.blue_goal_region.center[0], self.blue_goal_region.center[1] + 1)
 
-        '''
-        ### lazy f-strings for programmers and debug output (new in python3 (3.8?)):
-        In [3]: x = {1:2, 3:4}
-        In [5]: y = "nice"
-        In [6]: print(f"{x[1]=}, {y=}")
-        x[1]=2, y='nice'
-        '''
-        if world_state['ingestedBalls'] > 4 or (geom.dist(start, scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0):
+        if world_state['ingestedBalls'] > 4 or (geom.dist(start, self.scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0):
 
-            # If we're close to pregoal then run the tube
-            if geom.dist(start, scoring_zone) <= 0.15:
+            # If we're close to scoring zone then run the tube
+            if geom.dist(start, self.scoring_zone) <= 0.15:
                 tube_mode = 'OUTTAKE'
                 direction = 0
-                goal = scoring_zone
-            # Else go towards pregoal
+                goal = self.scoring_zone
+            # Else go towards scoring zone
             else:
                 tube_mode = 'INTAKE'
                 direction = -1
-                goal = scoring_zone
+                goal = self.scoring_zone
         else:
             tube_mode = 'INTAKE'
             direction = 1
             # 1. Add some object persistence so balls inside the LIDAR deadzone don't keep going out of view
-            deadzone_radius = 0.85
             if self.prev_obstacles is not None:
                 # Run through and recover any balls within the deadzone and place them into world_state
                 for ball in self.prev_obstacles:
-                    if 0.5 < geom.dist(start, ball[0]) < deadzone_radius:
+                    if 0.5 < geom.dist(start, ball[0]) <= self.deadzone_radius:
                         world_state['obstacles']['balls'].append(ball)
             self.prev_obstacles = world_state['obstacles']['balls']
 
@@ -102,7 +96,7 @@ class Planning:
         self.occupancy_grid.clear()
 
         # Insert static obstacles
-        for static_obstacle in self.static_obstacles:
+        for static_obstacle in self.field_elements:
             self.occupancy_grid.insert_convex_polygon(static_obstacle)
 
         # Insert dynamic obstacles

@@ -52,5 +52,7 @@ class Config:
             self.occupancy_grid_origin = (0, 0)
             self.occupancy_grid_dilation_kernel_size = 7
 
+            self.lidar_deadzone_radius = 0.85
+
             # Game pieces
             self.ball_radius = IN_TO_M * config['sim']['gamePiece']['radius']
