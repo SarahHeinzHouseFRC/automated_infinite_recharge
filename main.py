@@ -40,7 +40,7 @@ def main():
     # Launch perception, motion planning, and controls in main thread
     perception = Perception(config)
     planning = Planning(config)
-    controls = Controls()
+    controls = Controls(config)
     visualize = Visualize()
 
     try:

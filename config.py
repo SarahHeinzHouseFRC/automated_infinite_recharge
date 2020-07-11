@@ -46,13 +46,24 @@ class Config:
             self.red_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['redGoalRegion']))
             self.blue_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['blueGoalRegion']))
 
+            # Occupancy grid
             self.occupancy_grid_width = 10
             self.occupancy_grid_height = 16
             self.occupancy_grid_cell_resolution = 0.1
             self.occupancy_grid_origin = (0, 0)
-            self.occupancy_grid_dilation_kernel_size = 7
+            self.occupancy_grid_dilation_kernel_size = 13
 
+            # LIDAR
             self.lidar_deadzone_radius = 0.85
+
+            # Controls
+            self.drive_kp = 40
+            self.drive_ki = 1
+            self.drive_kd = 1
+            self.heading_error_threshold = 0.1
+            self.max_forward_speed = 100
+            self.max_intake_speed = 512
+            self.max_outtake_speed = 512
 
             # Game pieces
             self.ball_radius = IN_TO_M * config['sim']['gamePiece']['radius']

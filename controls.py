@@ -4,6 +4,7 @@
 
 import numpy as np
 import time
+from math import atan2
 
 
 class PID:
@@ -21,7 +22,7 @@ class PID:
         return: a value
         """
         # 1. Calculate the error
-        error = curr_value - desired_value
+        error = desired_value - curr_value
 
         # 2. Calculate the proportional gain
         p_gain = self.kp * error
@@ -50,14 +51,23 @@ class PID:
 
 
 class Controls:
-    def __init__(self):
-        self.pid_control_left = PID(20, 1, 1)
-        self.pid_control_right = PID(20, 1, 1)
+    def __init__(self, config):
+        self.max_forward_speed = config.max_forward_speed
+        self.max_intake_speed = config.max_intake_speed
+        self.max_outtake_speed = config.max_outtake_speed
+        self.heading_error_threshold = config.heading_error_threshold
+
+        kp = config.drive_kp
+        ki = config.drive_ki
+        kd = config.drive_kd
+
+        self.left_drive_pid = PID(kp, ki, kd)
+        self.right_drive_pid = PID(kp, ki, kd)
 
     def run(self, plan_state, vehicle_commands):
         curr_time = time.time()
 
-        if plan_state['trajectory'] is None or len(plan_state['trajectory']) < 2:
+        if plan_state['trajectory'] is None:
             return
 
         pose = plan_state['pose']
@@ -70,24 +80,30 @@ class Controls:
         vec_start_to_goal = goal - start
         desired_heading = np.arctan2(vec_start_to_goal[1], vec_start_to_goal[0]) % (2*np.pi)
 
+        if direction == -1:
+            desired_heading += np.pi
+            desired_heading = desired_heading % (2 * np.pi)
+
         # If we're not facing the right way, turn in place. Else move straight.
-        left_drive_motor_speed = 100 * direction
-        right_drive_motor_speed = 100 * direction
+        left_drive_speed = self.max_forward_speed * direction
+        right_drive_speed = self.max_forward_speed * direction
 
-        margin = 0.25
+        heading_norm_vector = np.array([np.cos(curr_heading), np.sin(curr_heading)])
+        goal_norm_vector = np.array([np.cos(desired_heading), np.sin(desired_heading)])
+        x1 = heading_norm_vector[0]
+        y1 = heading_norm_vector[1]
+        x2 = goal_norm_vector[0]
+        y2 = goal_norm_vector[1]
+        heading_error = atan2(x1 * y2 - y1 * x2, x1 * x2 + y1 * y2)
+        if abs(heading_error) >= self.heading_error_threshold and direction != 0:
+            left_drive_speed = -int(self.left_drive_pid.run(0, heading_error, curr_time))
+            right_drive_speed = int(self.right_drive_pid.run(0, heading_error, curr_time))
 
-        if direction != 0:
-            if direction == -1:
-                desired_heading += np.pi
-                desired_heading = desired_heading % (2*np.pi)
-            if abs(desired_heading - curr_heading) >= margin:
-                left_drive_motor_speed = int(self.pid_control_left.run(curr_heading, desired_heading, curr_time))
-                right_drive_motor_speed = -int(self.pid_control_right.run(curr_heading, desired_heading, curr_time))
+        intake_speed = self.max_intake_speed if tube_mode == 'INTAKE' else 0
+        outtake_speed = self.max_outtake_speed if tube_mode == 'OUTTAKE' else 0
 
-        intake_speed = 512 if tube_mode == 'INTAKE' else 0
-        outtake_speed = 512 if tube_mode == 'OUTTAKE' else 0
-        vehicle_commands['leftDriveMotorSpeed'] = left_drive_motor_speed
-        vehicle_commands['rightDriveMotorSpeed'] = right_drive_motor_speed
+        vehicle_commands['leftDriveMotorSpeed'] = left_drive_speed
+        vehicle_commands['rightDriveMotorSpeed'] = right_drive_speed
         vehicle_commands['intakeCenterMotorSpeed'] = intake_speed
         vehicle_commands['intakeLeftMotorSpeed'] = intake_speed
         vehicle_commands['intakeRightMotorSpeed'] = intake_speed
