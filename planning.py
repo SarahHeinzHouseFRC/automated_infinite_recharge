@@ -14,7 +14,8 @@ class Planning:
         self.blue_goal_region = config.blue_goal_region
         self.scoring_zone = self.blue_goal_region.center + np.array([0, 1])
 
-        self.prev_obstacles = None
+        self.prev_obstacles = None  # Used to remember balls that were nearby but are now in LIDAR deadzone
+        self.prev_goal = None  # Used to prevent flip-flopping between two equidistant goals
         self.occupancy_grid_dilation_kernel_size = config.occupancy_grid_dilation_kernel_size
         self.occupancy_grid = geom.OccupancyGrid(config.occupancy_grid_width,
                                                  config.occupancy_grid_height,
@@ -50,20 +51,24 @@ class Planning:
         Also identifies which direction to drive in, one of '1', '-1', or '0'
         """
         start = world_state['pose'][0]  # Our current (x,y)
+        goal = None
+        direction = None
+        tube_mode = None
 
-        if world_state['ingestedBalls'] > 4 or (geom.dist(start, self.scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0):
+        if geom.dist(start, self.scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0:
+            # If we're in the scoring zone with some balls then run the outtake
+            tube_mode = 'OUTTAKE'
+            direction = 0
+            goal = self.scoring_zone
 
-            # If we're close to scoring zone then run the tube
-            if geom.dist(start, self.scoring_zone) <= 0.15:
-                tube_mode = 'OUTTAKE'
-                direction = 0
-                goal = self.scoring_zone
-            # Else go towards scoring zone
-            else:
-                tube_mode = 'INTAKE'
-                direction = -1
-                goal = self.scoring_zone
+        elif world_state['ingestedBalls'] > 4 or ():
+            # If we have >4 balls then drive backwards towards the goal
+            tube_mode = 'INTAKE'
+            direction = -1
+            goal = self.scoring_zone
+
         else:
+            # The rest of the time, just run the intake and go towards the closest ball
             tube_mode = 'INTAKE'
             direction = 1
             # 1. Add some object persistence so balls inside the LIDAR deadzone don't keep going out of view
@@ -76,12 +81,11 @@ class Planning:
 
             # 2. Find the closest ball
             min_dist = np.inf
-            goal = None
-            for ball in world_state['obstacles']['balls']:
-                curr_dist = geom.dist(ball[0], start)
-                if curr_dist < min_dist and not self.occupancy_grid.occupancy[self.occupancy_grid.get_cell(ball[0]).indices]:
+            for ball_pos, ball_radius in world_state['obstacles']['balls']:
+                curr_dist = geom.dist(ball_pos, start)
+                if curr_dist < min_dist and not self.occupancy_grid.get_occupancy(ball_pos):
                     min_dist = curr_dist
-                    goal = ball[0]
+                    goal = ball_pos
 
         world_state['goal'] = goal
         world_state['direction'] = direction

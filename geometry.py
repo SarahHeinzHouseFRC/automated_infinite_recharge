@@ -125,6 +125,10 @@ class OccupancyGrid:
         max_row = int((max_y + self.origin[1]) / self.cell_resolution + self.num_rows / 2)
         return min_col, min_row, max_col, max_row
 
+    def get_occupancy(self, pos):
+        cell = self.get_cell(pos)
+        return self.occupancy[cell.indices]
+
     def insert_rectangular_obstacle(self, obstacle):
         """
         Finds the grid cells corresponding to the given obstacle and marks them as occupied.
