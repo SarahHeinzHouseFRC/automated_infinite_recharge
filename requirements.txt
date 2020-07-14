@@ -2,3 +2,6 @@ numpy
 matplotlib
 PyYAML
 opencv-python
+sphinx
+recommonmark
+sphinx_rtd_theme
