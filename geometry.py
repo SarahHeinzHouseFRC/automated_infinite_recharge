@@ -4,6 +4,7 @@
 
 import numpy as np
 from collections import defaultdict
+from math import atan2
 import cv2 as cv
 
 
@@ -256,6 +257,39 @@ def a_star(occupancy_grid, start, goal):
     path[-1] = goal
 
     return path
+
+
+def smooth_trajectory(trajectory):
+    """
+    Smooths out the kinks in the given trajectory. Any turn in the path that is more than 45 degrees is a "real" turn,
+    and any turn that is -45 < theta < 45 degrees is a "kink" or redundant and can be removed.
+
+    E.g. [(0.1, 0), (1, 1), (2, 2), (3, 2)] -> [(0.1, 0), (2, 2), (3, 2)]
+
+    :param trajectory: List of points as tuples
+    :return: Same as previous list but with points removed
+    """
+    # nothing to do if less than 3 points
+    if len(trajectory) < 3:
+        return trajectory
+
+    smoothed_trajectory = [trajectory[0]]
+
+    for p1,p2,p3 in zip(trajectory[:], trajectory[1:], trajectory[2:]):
+        v1 = np.array(p2) - np.array(p1)
+        v2 = np.array(p3) - np.array(p2)
+        x1 = v1[0]
+        y1 = v1[1]
+        x2 = v2[0]
+        y2 = v2[1]
+        theta = atan2(x1 * y2 - y1 * x2, x1 * x2 + y1 * y2)
+
+        TURN_THRESHOLD = np.pi / 4
+        if abs(theta) >= TURN_THRESHOLD:
+            smoothed_trajectory.append(p2)
+
+    smoothed_trajectory.append(trajectory[-1])
+    return smoothed_trajectory
 
 
 def bounding_box(points):

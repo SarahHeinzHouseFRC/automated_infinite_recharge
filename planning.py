@@ -117,5 +117,8 @@ class Planning:
             goal = world_state['goal']
             trajectory = geom.a_star(self.occupancy_grid, start, goal)
 
+        if trajectory:
+            trajectory = geom.smooth_trajectory(trajectory)
+
         world_state['trajectory'] = trajectory
         world_state['grid'] = self.occupancy_grid

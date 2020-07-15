@@ -357,6 +357,26 @@ class TestAStar(unittest.TestCase):
         self.assertIsNone(result)
 
 
+class TestSmoother(unittest.TestCase):
+    def test_trajectory_with_two_points_remains_unchanged(self):
+        trajectory = [(0.1, 0), (1, 1)]
+        smoothed_trajectory = geom.smooth_trajectory(trajectory)
+
+        expected = trajectory
+        actual = smoothed_trajectory
+
+        np.testing.assert_array_equal(expected, actual)
+
+    def test_smoother_removes_extraneous_points(self):
+        trajectory = [(0.1, 0), (1, 1), (2, 2), (3, 2)]
+        smoothed_trajectory = geom.smooth_trajectory(trajectory)
+
+        expected = [(0.1, 0), (2, 2), (3, 2)]
+        actual = smoothed_trajectory
+
+        np.testing.assert_array_equal(expected, actual)
+
+
 class TestCircleFit(unittest.TestCase):
     def test_make_circle(self):
         vertices = make_circular_vertices(radius=2, center=(2, 2), num_pts=3)
