@@ -15,9 +15,11 @@ Welcome to Automated Infinite Recharge's documentation!
    planning.md
    controls.md
 
-Indices and tables
+Indices and Tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+:math:`x`

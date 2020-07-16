@@ -7,7 +7,7 @@ Planning's purpose is to identify where the robot should go, and the path it sho
 The purpose of behavior planning is to define the goals and behavior of the robot. These goals and specific actions
 defined by behavior planning are essential to the robot's motion planning and carrying out these actions.
 
-![Image](behavior-planning.svg)
+![Image](img/behavior-planning.svg)
 
 ## Motion Planning ##
 Motion planning's purpose is to take a defined goal, and find a trajectory (series of nodes to navigate through) that
