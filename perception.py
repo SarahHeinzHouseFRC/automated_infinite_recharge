@@ -71,7 +71,7 @@ class Perception:
         """
         spherical_sweep = np.array(vehicle_state['lidarSweepFiltered'])
         azimuths = spherical_sweep[:, 0]
-        elevations = spherical_sweep[:, 1]
+        elevations = spherical_sweep[:, 1] # pylint: disable=unused-variable
         ranges = spherical_sweep[:, 2]
 
         cartesian_sweep = np.empty((len(spherical_sweep), 2))
@@ -172,7 +172,7 @@ class Perception:
         others = list()
 
         for cluster in clusters:
-            circle = geom.ransac_circle_fit(cluster, desired_radius=self.ball_radius, consensus=0.99, tolerance=0.03, iterations=7)
+            circle = geom.ransac_circle_fit(cluster, desired_radius=self.ball_radius, consensus=0.99, tolerance=0.03, iterations=10)
             if circle is not None: # Balls are 3.5" in radius
                 balls.append(circle)
             else:

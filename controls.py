@@ -2,13 +2,23 @@
 # Copyright (c) 2020 FRC Team 3260
 #
 
-import numpy as np
 import time
+import geometry as geom
+import numpy as np
 from math import atan2
 
 
 class PID:
+    """
+    PID object for iteratively getting from some current value to a desired value.
+    """
     def __init__(self, kp, ki, kd):
+        """
+        Constructor
+        :param kp: Proportional value as a float
+        :param ki: Integral value as a float
+        :param kd: Derivative value as a float
+        """
         self.kp = kp
         self.ki = ki
         self.kd = kd
@@ -19,7 +29,14 @@ class PID:
 
     def run(self, curr_value, desired_value, curr_timestamp):
         """
-        return: a value
+        Calculates a signal to move curr_value towards desired_value. E.g. if curr_value is 10 and desired_value is 15,
+        a positive signal will be returned. When curr_value is 20 and desired_value is 15, a negative signal will be
+        returned. And if curr_value == desired_value, a signal of 0 will be returned. The current time is compared to
+        the timestamp from the previous call of run() and used to calculate the derivative gain for this timestep.
+        :param curr_value: Current position as a float
+        :param desired_value: Desired position as a float
+        :param curr_timestamp: Time run was called as a float
+        :return Signal on how much to shift curr_value to move towards desired_value
         """
         # 1. Calculate the error
         error = desired_value - curr_value
@@ -51,7 +68,15 @@ class PID:
 
 
 class Controls:
+    """
+    This class generates motor values from the output of planning, including for the two drive motors, intakes, and
+    outtake.
+    """
     def __init__(self, config):
+        """
+        Constructor
+        :param config: Contains various constants from the robot
+        """
         self.max_forward_speed = config.max_forward_speed
         self.max_intake_speed = config.max_intake_speed
         self.max_outtake_speed = config.max_outtake_speed
@@ -61,10 +86,16 @@ class Controls:
         ki = config.drive_ki
         kd = config.drive_kd
 
+        self.straight_pid = PID(500, 1, 1)
         self.left_drive_pid = PID(kp, ki, kd)
         self.right_drive_pid = PID(kp, ki, kd)
 
     def run(self, plan_state):
+        """
+        Calculates controls given the current plan state
+        :param plan_state: Dict containing robot's current pose and some goal state
+        :return: Dict containing motor speeds for each motor on the robot
+        """
         curr_time = time.time()
         vehicle_commands = {
             'leftDriveMotorSpeed': 0,  # Left drive motor speed (-512 - 512)
@@ -97,9 +128,6 @@ class Controls:
             desired_heading = desired_heading % (2 * np.pi)
 
         # If we're not facing the right way, turn in place. Else move straight.
-        left_drive_speed = self.max_forward_speed * direction
-        right_drive_speed = self.max_forward_speed * direction
-
         heading_norm_vector = np.array([np.cos(curr_heading), np.sin(curr_heading)])
         goal_norm_vector = np.array([np.cos(desired_heading), np.sin(desired_heading)])
         x1 = heading_norm_vector[0]
@@ -107,9 +135,18 @@ class Controls:
         x2 = goal_norm_vector[0]
         y2 = goal_norm_vector[1]
         heading_error = atan2(x1 * y2 - y1 * x2, x1 * x2 + y1 * y2)
-        if abs(heading_error) >= self.heading_error_threshold and direction != 0:
+        if direction == 0:
+            left_drive_speed = 0
+            right_drive_speed = 0
+        elif abs(heading_error) >= self.heading_error_threshold:
             left_drive_speed = -int(self.left_drive_pid.run(0, heading_error, curr_time))
             right_drive_speed = int(self.right_drive_pid.run(0, heading_error, curr_time))
+        else:
+            distance_to_goal = geom.dist(start, goal)
+            speed = int(abs(self.straight_pid.run(distance_to_goal, 0, curr_time)))
+            speed = min(speed, self.max_forward_speed)
+            left_drive_speed = speed * direction
+            right_drive_speed = speed * direction
 
         intake_speed = self.max_intake_speed if tube_mode == 'INTAKE' else 0
         outtake_speed = self.max_outtake_speed if tube_mode == 'OUTTAKE' else 0

@@ -207,7 +207,7 @@ def a_star(occupancy_grid, start, goal):
 
     # Trivial case
     if start_node is goal_node:
-        return [start_node, goal_node]
+        return [start, goal]
 
     start_node.parent = start_node  # Just needs to be something other than None so we don't try to explore it
     queue = [(0, start_node)]

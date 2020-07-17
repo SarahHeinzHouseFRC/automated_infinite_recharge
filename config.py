@@ -46,6 +46,9 @@ class Config:
             self.red_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['redGoalRegion']))
             self.blue_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['blueGoalRegion']))
 
+            self.blue_player_station_pos = IN_TO_M * np.array([-61.00, 314.96])
+            self.red_player_station_pos = IN_TO_M * np.array([61.00, -314.96])
+
             # Occupancy grid
             self.occupancy_grid_width = 10
             self.occupancy_grid_height = 16

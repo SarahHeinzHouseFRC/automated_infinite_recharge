@@ -13,6 +13,7 @@ class Planning:
         self.red_goal_region = config.red_goal_region
         self.blue_goal_region = config.blue_goal_region
         self.scoring_zone = self.blue_goal_region.center + np.array([0, 1])
+        self.blue_player_station_pos = config.blue_player_station_pos - np.array([0, 0.5])
 
         self.prev_obstacles = None  # Used to remember balls that were nearby but are now in LIDAR deadzone
         self.prev_goal = None  # Used to prevent flip-flopping between two equidistant goals
@@ -25,6 +26,11 @@ class Planning:
         self.deadzone_radius = config.lidar_deadzone_radius
 
     def run(self, world_state):
+        """
+        Picks a goal to drive towards and then determines a collision-free trajectory for driving to that goal.
+        :param world_state: Output of perception
+        :return: Dict containing the robot's current pose and a goal state as the input of controls
+        """
         # 1. Identify the goal
         self.behavior_planning(world_state)
 
@@ -61,7 +67,7 @@ class Planning:
             direction = 0
             goal = self.scoring_zone
 
-        elif world_state['ingestedBalls'] > 4 or ():
+        elif world_state['ingestedBalls'] > 4:
             # If we have >4 balls then drive backwards towards the goal
             tube_mode = 'INTAKE'
             direction = -1
@@ -87,14 +93,22 @@ class Planning:
                     min_dist = curr_dist
                     goal = ball_pos
 
+        # Last resort!
+        if goal is None:
+            # If we can't reach any balls then go towards the blue player station
+            tube_mode = 'INTAKE'
+            direction = 1
+            goal = self.blue_player_station_pos
+
         world_state['goal'] = goal
         world_state['direction'] = direction
         world_state['tube_mode'] = tube_mode
 
     def motion_planning(self, world_state):
         """
-        Identifies a motion plan for achieving the goal state contained in world_state['goal'] and places a
-        trajectory waypoint into world_state['waypoint'].
+        Calculates a trajectory for driving from the current position to the goal contained in world_state['goal']. The
+        result is placed into world_state['trajectory']
+        :param world_state: Outputs of perception and behavior planning
         """
         # clear the positions previously marked as obstacles because they may have changed
         self.occupancy_grid.clear()
@@ -117,8 +131,8 @@ class Planning:
             goal = world_state['goal']
             trajectory = geom.a_star(self.occupancy_grid, start, goal)
 
-        if trajectory:
-            trajectory = geom.smooth_trajectory(trajectory)
+        # if trajectory:
+        #     trajectory = geom.smooth_trajectory(trajectory)
 
         world_state['trajectory'] = trajectory
         world_state['grid'] = self.occupancy_grid

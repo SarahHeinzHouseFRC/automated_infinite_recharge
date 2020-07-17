@@ -5,6 +5,7 @@
 import unittest
 from unittest.mock import Mock
 from controls import Controls, PID
+import numpy as np
 
 
 class TestPID(unittest.TestCase):
@@ -34,6 +35,7 @@ class TestControls(unittest.TestCase):
         config.max_forward_speed = 512
         config.max_intake_speed = 512
         config.max_outtake_speed = 512
+        config.blue_player_station_pos = np.array([10, 10])
 
         self.controls = Controls(config)
 

@@ -19,6 +19,7 @@ class TestBehaviorPlanning(unittest.TestCase):
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
         self.config.lidar_deadzone_radius = 0.85
+        self.config.blue_player_station_pos = np.array([10, 10])
 
         self.planning = Planning(self.config)
 
@@ -138,6 +139,7 @@ class TestMotionPlanning(unittest.TestCase):
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -2.5)))
+        self.config.blue_player_station_pos = np.array([10, 10])
 
         self.pose = ((-2.5, -2.5), 0)
         self.goal = (2.5, 2.5)
@@ -155,7 +157,7 @@ class TestMotionPlanning(unittest.TestCase):
 
         self.planning.motion_planning(world_state)
 
-        expected_trajectory_length = 2
+        expected_trajectory_length = 6
         actual_trajectory_length = len(world_state['trajectory'])
         expected_occupancy_grid = np.zeros(shape=(6,6))
         actual_occupancy_grid = world_state['grid'].occupancy
@@ -179,7 +181,7 @@ class TestMotionPlanning(unittest.TestCase):
         expected_occupancy_grid = np.zeros(shape=(6,6), dtype=np.uint8)
         expected_occupancy_grid[1:5,1:5] = np.ones(shape=(4,4))
         actual_occupancy_grid = world_state['grid'].occupancy
-        expected_trajectory_length = 4
+        expected_trajectory_length = 10
 
         actual_trajectory_length = len(world_state['trajectory'])
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
@@ -199,7 +201,7 @@ class TestMotionPlanning(unittest.TestCase):
         expected_occupancy_grid = np.zeros(shape=(6, 6), dtype=np.uint8)
         expected_occupancy_grid[1:5, 1:5] = np.ones(shape=(4, 4))
         actual_occupancy_grid = world_state['grid'].occupancy
-        expected_trajectory_length = 4
+        expected_trajectory_length = 10
         actual_trajectory_length = len(world_state['trajectory'])
 
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
@@ -246,6 +248,7 @@ class TestRun(unittest.TestCase):
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
+        self.config.blue_player_station_pos = np.array([10, 10])
 
         self.planning = Planning(self.config)
 
@@ -261,7 +264,7 @@ class TestRun(unittest.TestCase):
 
         self.planning.run(world_state)
 
-        expected = 2
+        expected = 6
         actual = len(world_state['trajectory'])
 
         self.assertEqual(expected, actual)
