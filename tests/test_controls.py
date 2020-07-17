@@ -47,7 +47,7 @@ class TestControls(unittest.TestCase):
         self.vehicle_commands = {}
 
     def test_stand_still(self):
-        self.controls.run(self.plan_state, self.vehicle_commands)
+        self.vehicle_commands.update(self.controls.run(self.plan_state))
 
         expected = {
             'leftDriveMotorSpeed': 0,
@@ -56,6 +56,10 @@ class TestControls(unittest.TestCase):
             'intakeLeftMotorSpeed': self.controls.max_intake_speed,
             'intakeRightMotorSpeed': self.controls.max_intake_speed,
             'tubeMotorSpeed': 0,
+            'timerStartStop': 0,
+            'reset': 0,
+            'outtake': 0,
+            'draw': []
         }
         actual = self.vehicle_commands
 
@@ -64,7 +68,7 @@ class TestControls(unittest.TestCase):
     def test_drive_forwards(self):
         self.plan_state['direction'] = 1
 
-        self.controls.run(self.plan_state, self.vehicle_commands)
+        self.vehicle_commands.update(self.controls.run(self.plan_state))
 
         expected = {
             'leftDriveMotorSpeed': self.controls.max_forward_speed,
@@ -73,6 +77,10 @@ class TestControls(unittest.TestCase):
             'intakeLeftMotorSpeed': self.controls.max_intake_speed,
             'intakeRightMotorSpeed': self.controls.max_intake_speed,
             'tubeMotorSpeed': 0,
+            'timerStartStop': 0,
+            'reset': 0,
+            'outtake': 0,
+            'draw': []
         }
         actual = self.vehicle_commands
 
@@ -82,7 +90,7 @@ class TestControls(unittest.TestCase):
         self.plan_state['trajectory'] = [(0, 0), (-2.5, 0)]
         self.plan_state['direction'] = -1
 
-        self.controls.run(self.plan_state, self.vehicle_commands)
+        self.vehicle_commands.update(self.controls.run(self.plan_state))
 
         expected = {
             'leftDriveMotorSpeed': -self.controls.max_forward_speed,
@@ -91,6 +99,10 @@ class TestControls(unittest.TestCase):
             'intakeLeftMotorSpeed': self.controls.max_intake_speed,
             'intakeRightMotorSpeed': self.controls.max_intake_speed,
             'tubeMotorSpeed': 0,
+            'timerStartStop': 0,
+            'reset': 0,
+            'outtake': 0,
+            'draw': []
         }
         actual = self.vehicle_commands
 
@@ -100,7 +112,7 @@ class TestControls(unittest.TestCase):
         self.plan_state['trajectory'] = [(0, 0), (0, -2.5)]
         self.plan_state['direction'] = 1
 
-        self.controls.run(self.plan_state, self.vehicle_commands)
+        self.vehicle_commands.update(self.controls.run(self.plan_state))
 
         self.assertTrue(self.vehicle_commands['leftDriveMotorSpeed'] > 0)
         self.assertTrue(self.vehicle_commands['rightDriveMotorSpeed'] < 0)
@@ -109,7 +121,7 @@ class TestControls(unittest.TestCase):
         self.plan_state['trajectory'] = [(0, 0), (0, 2.5)]
         self.plan_state['direction'] = 1
 
-        self.controls.run(self.plan_state, self.vehicle_commands)
+        self.vehicle_commands.update(self.controls.run(self.plan_state))
 
         self.assertTrue(self.vehicle_commands['leftDriveMotorSpeed'] < 0)
         self.assertTrue(self.vehicle_commands['rightDriveMotorSpeed'] > 0)
@@ -117,7 +129,7 @@ class TestControls(unittest.TestCase):
     def test_intake(self):
         self.plan_state['tube_mode'] = 'INTAKE'
 
-        self.controls.run(self.plan_state, self.vehicle_commands)
+        self.vehicle_commands.update(self.controls.run(self.plan_state))
 
         self.assertEqual(self.vehicle_commands['intakeCenterMotorSpeed'], self.controls.max_intake_speed)
         self.assertEqual(self.vehicle_commands['intakeLeftMotorSpeed'], self.controls.max_intake_speed)
@@ -127,7 +139,7 @@ class TestControls(unittest.TestCase):
     def test_outtake(self):
         self.plan_state['tube_mode'] = 'OUTTAKE'
 
-        self.controls.run(self.plan_state, self.vehicle_commands)
+        self.vehicle_commands.update(self.controls.run(self.plan_state))
 
         self.assertEqual(self.vehicle_commands['intakeCenterMotorSpeed'], 0)
         self.assertEqual(self.vehicle_commands['intakeLeftMotorSpeed'], 0)

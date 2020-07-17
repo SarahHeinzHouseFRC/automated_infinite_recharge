@@ -9,10 +9,13 @@ import json
 
 
 class CommsThread(Thread):
-    def __init__(self, comms_config, verbose):
+    def __init__(self, comms_config, verbose, commands_mutex):
         super(CommsThread, self).__init__()
+        self.commands_mutex = commands_mutex
         self.verbose = verbose
         self.comms = Comms(comms_config)
+        # Since we're initalizing, we don't need to hold the commands_mutex
+        # yet, because no one else has access to this data structure yet
         self.vehicle_commands = {
             'leftDriveMotorSpeed': 0,  # Left drive motor speed (-512 - 512)
             'rightDriveMotorSpeed': 0,  # Right drive motor speed (-512 - 512)
@@ -38,7 +41,11 @@ class CommsThread(Thread):
     def run(self):
         while True:
             # Send sim commands
-            tx_msg = json.dumps(self.vehicle_commands)
+            with self.commands_mutex:
+                # hold the lock while we're working on this,
+                # so the planning code doesn't modify it while
+                # we're in the middle of transmitting it
+                tx_msg = json.dumps(self.vehicle_commands)
             self.comms.tx(tx_msg)
             if self.verbose:
                 print('Sent: ', tx_msg)

@@ -5,6 +5,7 @@
 #
 
 import argparse
+from threading import Lock
 from comms import *
 from config import Config
 from perception import Perception
@@ -32,8 +33,10 @@ def main():
     print("Rx at {}:{}".format(comms_config["rx_ip"], comms_config["rx_port"]))
     print("Tx to {}:{}".format(comms_config["tx_ip"], comms_config["tx_port"]))
 
+    commands_mutex = Lock()
+
     # Launch comms in background thread
-    comms = CommsThread(comms_config, False)
+    comms = CommsThread(comms_config, False, commands_mutex)
     comms.daemon = True
     comms.start()
 
@@ -49,12 +52,18 @@ def main():
                 t1 = time .time()
                 world_state = perception.run(comms.vehicle_state)
                 plan_state = planning.run(world_state)
-                controls.run(plan_state, comms.vehicle_commands)
+
+                new_commands = controls.run(plan_state)
+                # Unlock
                 t2 = time .time()
                 freq = 1 / (t2 - t1)
                 print(f"Running at {freq} Hz")
 
-                comms.vehicle_commands['draw'] = visualize.run(world_state, plan_state)
+                new_commands['draw'] = visualize.run(world_state, plan_state)
+                with commands_mutex:
+                    # hold the lock to prevent the Comms thread from
+                    # sending the commands dict while we're modifying it
+                    comms.vehicle_commands.update(new_commands)
     except KeyboardInterrupt:
         pass
 

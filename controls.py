@@ -64,11 +64,23 @@ class Controls:
         self.left_drive_pid = PID(kp, ki, kd)
         self.right_drive_pid = PID(kp, ki, kd)
 
-    def run(self, plan_state, vehicle_commands):
+    def run(self, plan_state):
         curr_time = time.time()
+        vehicle_commands = {
+            'leftDriveMotorSpeed': 0,  # Left drive motor speed (-512 - 512)
+            'rightDriveMotorSpeed': 0,  # Right drive motor speed (-512 - 512)
+            'intakeCenterMotorSpeed': 0,  # Intake center motor speed (-512 - 512)
+            'intakeLeftMotorSpeed': 0,  # Intake left motor speed (-512 - 512)
+            'intakeRightMotorSpeed': 0,  # Intake right motor speed (-512 - 512)
+            'tubeMotorSpeed': 0,  # Tube motor speed (-512 - 512)
+            'timerStartStop': 0,  # Timer start/stop (0 or 1)
+            'reset': 0,  # Reset (0 or 1)
+            'outtake': 0,  # Outtake (0 or 1)
+            'draw': []  # List of shapes to draw
+        }
 
         if plan_state['trajectory'] is None:
-            return
+            return vehicle_commands # nothing new here
 
         pose = plan_state['pose']
         start = np.array(plan_state['trajectory'][0])
@@ -109,18 +121,4 @@ class Controls:
         vehicle_commands['intakeRightMotorSpeed'] = intake_speed
         vehicle_commands['tubeMotorSpeed'] = outtake_speed
 
-        """
-        Commands dict looks like this:
-        vehicle_commands = {
-            'leftDriveMotorSpeed': 0,  # Left drive motor speed (-512 - 512)
-            'rightDriveMotorSpeed': 0,  # Right drive motor speed (-512 - 512)
-            'intakeCenterMotorSpeed': 0,  # Intake center motor speed (-512 - 512)
-            'intakeLeftMotorSpeed': 0,  # Intake left motor speed (-512 - 512)
-            'intakeRightMotorSpeed': 0,  # Intake right motor speed (-512 - 512)
-            'tubeMotorSpeed': 0,  # Tube motor speed (-512 - 512)
-            'timerStartStop': 0,  # Timer start/stop (0 or 1)
-            'reset': 0,  # Reset (0 or 1)
-            'outtake': 0  # Outtake (0 or 1)
-            'draw': []  # List of shapes to draw
-        }
-        """
+        return vehicle_commands
