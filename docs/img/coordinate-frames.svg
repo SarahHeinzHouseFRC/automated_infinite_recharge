@@ -137,8 +137,8 @@
      id="namedview147"
      showgrid="false"
      inkscape:zoom="3.05"
-     inkscape:cx="333.83923"
-     inkscape:cy="132.63087"
+     inkscape:cx="306.01354"
+     inkscape:cy="128.57666"
      inkscape:window-x="67"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
@@ -236,12 +236,12 @@
        d="m 367.29073,55.54607 v 0 c -0.38287,0.22107 -0.8725,0.0898 -1.09351,-0.29309 l -5.4104,-9.37375 c -0.10614,-0.18387 -0.13488,-0.4024 -0.08,-0.60751 0.055,-0.20511 0.18915,-0.37998 0.37304,-0.48612 l 2.7732,-1.6011 c 0.38287,-0.22107 0.8725,-0.0899 1.0935,0.29309 l 5.4104,9.37372 v 0 c 0.22101,0.38293 0.0898,0.87259 -0.29309,1.09365 z"
        id="path79"
        inkscape:connector-curvature="0"
-       style="opacity:1;vector-effect:none;fill:#c0c0c0;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+       style="opacity:1;vector-effect:none;fill:#696969;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
     <path
        d="m 378.94658,48.81651 v 0 c -0.38287,0.22107 -0.87244,0.0898 -1.09351,-0.29309 l -5.4104,-9.37373 c -0.10614,-0.1839 -0.13488,-0.40242 -0.0799,-0.60753 0.0549,-0.2051 0.18915,-0.37996 0.37298,-0.48612 l 2.7732,-1.6011 c 0.38293,-0.22107 0.8725,-0.0899 1.0935,0.29307 l 5.4104,9.37374 v 0 c 0.22107,0.38293 0.0898,0.87259 -0.29309,1.09366 z"
        id="path81"
        inkscape:connector-curvature="0"
-       style="opacity:1;vector-effect:none;fill:#c0c0c0;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+       style="opacity:1;vector-effect:none;fill:#696969;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
     <path
        d="m 364.56829,56.44757 -5.62854,-9.75165 18.7478,-10.82408 5.62854,9.75166 z"
        id="path83"
@@ -251,7 +251,7 @@
        d="m 377.72923,45.54787 2.77277,-4.80472 -5.54682,-10e-4 z"
        id="path85"
        inkscape:connector-curvature="0"
-       style="opacity:1;vector-effect:none;fill:#c0c0c0;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+       style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
     <path
        d="m 373.25158,45.2653 9.9527,-17.25984"
        id="path87"
@@ -344,5 +344,5 @@
        id="tspan1776"
        x="437.48563"
        y="74.767899"
-       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:24px;font-family:'Latin Modern Math';-inkscape-font-specification:'Latin Modern Math, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#ff5e38;fill-opacity:1;stroke-width:0.99999994">θ</tspan></text>
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:24px;font-family:'Latin Modern Math';-inkscape-font-specification:'Latin Modern Math, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#ff5e38;fill-opacity:1;stroke-width:0.99999994">ϕ</tspan></text>
 </svg>

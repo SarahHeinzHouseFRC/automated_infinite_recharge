@@ -6,6 +6,8 @@
 Welcome to Automated Infinite Recharge's documentation!
 =======================================================
 
+.. image:: https://prateeksahay.com/img/classification.gif
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
