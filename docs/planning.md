@@ -46,10 +46,11 @@ control to forward-simulate the robot. Although this can be computationally heav
 for many possible trajectories, this method is highly parallelizable.
 
 
-## TODO ##
-  - [ ] All the obstacles on the field are currently dilated by the radius of the robot, which is its diagonal length.
-    This works fine in most cases and prevents collisions, but unfortunately does not allow the robot to pass through
-    the trench anymore because it is too large to fit diagonally in the trench.
+## Future Work ##
+  - [ ] All the obstacles on the field are currently dilated by the radius of the robot, which is half its diagonal
+        length (effectively its largest radius). This works fine in most cases and prevents collisions, but
+        unfortunately does not allow the robot to pass through the trench anymore because it is too large to fit
+        diagonally in the trench.
   - [ ] Behavior: If no more balls are visible on the field, then move towards the human player station.
   - [x] Smooth out the kinks in A*'s plan.
   - [ ] Find a way to plan out of an obstacle if the robot drives into an occupied call.

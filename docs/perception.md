@@ -86,3 +86,10 @@ by running RANSAC on each cluster of points to see if a circle with a radius of 
 axis-aligned bounding box (AABB) fit to them for simplicity.
 
 ![We use RANSAC to classify each cluster as a ball or a robot.](img/classification.svg)
+
+
+## Future Work ##
+Our perception can sometimes be very jumpy. Even while driving straight towards a ball, our perception stack will
+occasionally switch to thinking it's an obstacle instead. We can add smoothing to our code to mitigate this issue, but a
+more robust solution might be overhauling our obstacle classification to be more accurate. Increasing RANSAC's
+iterations tends to measurably impacts performance. One alternative might be a deep-learned CNN for better recognition.
