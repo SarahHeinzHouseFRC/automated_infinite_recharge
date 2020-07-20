@@ -53,3 +53,4 @@ for many possible trajectories, this method is highly parallelizable.
   - [ ] Behavior: If no more balls are visible on the field, then move towards the human player station.
   - [x] Smooth out the kinks in A*'s plan.
   - [ ] Find a way to plan out of an obstacle if the robot drives into an occupied call.
+  - [ ] Stay focused on one ball while going towards it.

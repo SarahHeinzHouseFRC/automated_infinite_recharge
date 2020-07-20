@@ -14,6 +14,7 @@ Welcome to Automated Infinite Recharge's documentation!
    perception.md
    planning.md
    controls.md
+   geometry.md
 
 Indices and Tables
 ==================
