@@ -28,15 +28,7 @@ class CommsThread(Thread):
             'outtake': 0,  # Outtake (0 or 1)
             'draw': []  # List of shapes to be drawn
         }
-        self.vehicle_state = {
-            'x': 0,  # Position (meters)
-            'y': 0,  # Position (meters)
-            'theta': 0,  # Heading (rads, not wrapped)
-            'leftDriveEncoder': 0,  # Left drive encoder ticks (0 - 1024)
-            'rightDriveEncoder': 0,  # Right drive encoder ticks (0 - 1024)
-            'ingestedBalls': 0,  # Number of ingested balls (0+)
-            'lidarSweep': []  # LIDAR sweep
-        }
+        self.vehicle_states = []
 
     def run(self):
         while True:
@@ -48,20 +40,30 @@ class CommsThread(Thread):
                 tx_msg = json.dumps(self.vehicle_commands)
             self.comms.tx(tx_msg)
             if self.verbose:
-                print('Sent: ', tx_msg)
+                print('Sent: {tx_msg}')
 
             # Receive sensor state
             rx_msg = self.comms.rx()
             if rx_msg is not None:
-                self.vehicle_state = json.loads(rx_msg)
+                vehicle_state = json.loads(rx_msg)
+                self.vehicle_states.append(vehicle_state)
                 if self.verbose:
-                    print('Received: ', rx_msg)
+                    print('Received: {rx_msg}')
+                # print('Received: ', vehicle_state['leftDriveEncoder'])
 
             # Sleep for safety
-            time.sleep(0.01)
+            # time.sleep(0.001)
 
     def join(self, **kwargs):
         Thread.join(self)
+
+    def get_vehicle_states(self):
+        """
+        Returns all the vehicle states received since the last call of this method
+        """
+        ret = self.vehicle_states.copy()
+        self.vehicle_states = []
+        return ret
 
 
 class Comms:

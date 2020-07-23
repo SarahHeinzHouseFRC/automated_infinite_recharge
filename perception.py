@@ -20,24 +20,19 @@ class Perception:
         for field_element in self.field_elements:
             field_element.scale(1.01)
 
+        self.curr_sweep = []  # Sweep to keep using until sweep builder builds a full one
+        self.partial_sweep = []  # Sweep currently being built by sweep builder
+
     def run(self, vehicle_state):
         """
-        :param vehicle_state: Current state of all sensors on the vehicle
+        :param vehicle_state: Ordered list of dict containing sensor states on the vehicle
         :return: Our pose and list of all obstacles
         """
-        # 1. Preprocess sweep
-        self.filter_empty_rays(vehicle_state)
-        self.spherical_to_cartesian(vehicle_state)
-
-        # 2. Localization
-        self.localize(vehicle_state)
-        self.vehicle_frame_to_world_frame(vehicle_state)
-
-        # 3. Segmentation
+        # Segmentation
         self.subtract_background(vehicle_state)
         self.cluster(vehicle_state)
 
-        # 4. Classification
+        # Classification
         self.classify(vehicle_state)
 
         """
@@ -51,72 +46,22 @@ class Perception:
         world_state = {
             'pose': ((vehicle_state['x'], vehicle_state['y']), vehicle_state['theta']),
             'obstacles': vehicle_state['classes'],
-            'ingestedBalls': vehicle_state['ingestedBalls']
+            'numIngestedBalls': vehicle_state['numIngestedBalls']
         }
 
         return world_state
 
-    def filter_empty_rays(self, vehicle_state):
-        """
-        Filters the sweep contained in vehicle_state['lidarSweep'] as a list of dict to remove all rays with a negative
-        range, which represents a ray miss. The result is stored into vehicle_state['lidarSweepFiltered'] as a smaller
-        list of dict.
-        """
-        vehicle_state['lidarSweepFiltered'] = [point for point in vehicle_state['lidarSweep'] if point[2] > 0]
-
-    def spherical_to_cartesian(self, vehicle_state):
-        """
-        Converts the sweep stored in vehicle_state['lidarSweepParsed'] from an Nx3 numpy array of spherical coordinates
-        to an Nx2 array of Cartesian coordinates. Result is stored into vehicle_state['lidarSweepCartesian'].
-        """
-        spherical_sweep = np.array(vehicle_state['lidarSweepFiltered'])
-        azimuths = spherical_sweep[:, 0]
-        elevations = spherical_sweep[:, 1] # pylint: disable=unused-variable
-        ranges = spherical_sweep[:, 2]
-
-        cartesian_sweep = np.empty((len(spherical_sweep), 2))
-        cartesian_sweep[:, 0] = ranges * np.cos(azimuths)
-        cartesian_sweep[:, 1] = ranges * np.sin(azimuths)
-
-        vehicle_state['lidarSweepCartesian'] = cartesian_sweep
-
-    def localize(self, vehicle_state):
-        """
-        Takes in the sweep stored in vehicle_state['lidarSweepCartesian'] and determines our current position in the
-        field. The result is stored into vehicle_state['x'], ['y'], and ['theta']
-        :return: Vehicle's current pose as a dict and sweep in world frame as Nx3 numpy array of floats
-        """
-        pass  # TODO: Cheating for now, the sim has already provided us with x, y, theta
-
-    def vehicle_frame_to_world_frame(self, vehicle_state):
-        """
-        Converts the sweep stored in vehicle_state['lidarSweepCartesian'] as an Nx2 numpy array from vehicle frame to
-        world frame using vehicle_state['x'], ['y'], and ['theta']. Result is stored into
-        vehicle_state['lidarSweepWorld'] as an Nx2 numpy array.
-        """
-        theta = -vehicle_state['theta']
-        x = vehicle_state['x']
-        y = vehicle_state['y']
-
-        r = np.array([[np.cos(theta), -np.sin(theta)],
-                      [np.sin(theta), np.cos(theta)]])
-        t = np.array([x, y])
-
-        sweep_vehicle_frame = vehicle_state['lidarSweepCartesian']
-        sweep_world_frame = (sweep_vehicle_frame @ r) + t
-        vehicle_state['lidarSweepWorld'] = sweep_world_frame
-
     def subtract_background(self, vehicle_state):
         """
-        Takes in the sweep stored in vehicle_state['lidarSweepWorld'] as an Nx2 and creates a mask as an Nx1 array,
+        Takes in the sweep stored in vehicle_state['lidarSweepBuilt'] as an Nx2 and creates a mask as an Nx1 array,
         where each element is marked as either 0 for background point or 1 for foreground point. The result is stored
-        into vehicle_state['lidarSweepMask']
+        into vehicle_state['lidarSweepBuiltMask']
 
         Removes the points in the sweep corresponding to walls and other static obstacles
         :param vehicle_state: Current sweep in world frame as an Nx2 array of floats
         :return: Same as input but with points corresponding to static objects removed
         """
-        world_frame_sweep = vehicle_state['lidarSweepWorld']
+        world_frame_sweep = vehicle_state['lidarSweep']
         background_mask = np.zeros(len(world_frame_sweep), dtype=bool)
 
         for i, point in enumerate(world_frame_sweep):
@@ -136,7 +81,7 @@ class Perception:
 
     def cluster(self, vehicle_state):
         """
-        Identifies clusters of foreground points in the sweep stored in vehicle_state['lidarSweepWorld'] as an Nx2 numpy
+        Identifies clusters of foreground points in the sweep stored in vehicle_state['lidarSweep'] as an Nx2 numpy
         array using the background mask stored in vehicle_state['lidarSweepMask'] as an Nx1 numpy array and marks each
         foreground point with its associated cluster. The result is stored into
         vehicle_state['clusters'].
@@ -145,7 +90,7 @@ class Perception:
         # side length of buckets in meters
         BIN_SIZE = 0.1
 
-        worldSweep = vehicle_state['lidarSweepWorld']
+        worldSweep = vehicle_state['lidarSweep']
         foreground_points = worldSweep[vehicle_state['lidarSweepMask']]
 
         # Bucketize all points into a defaultdict of this form:
@@ -159,7 +104,8 @@ class Perception:
             bucket = (point[0] // BIN_SIZE, point[1] // BIN_SIZE) # get coordinates from point
             buckets[bucket].append(point)
 
-        vehicle_state['clusters'] = geom.connected_components(buckets)
+        clusters = geom.connected_components(buckets)
+        vehicle_state['clusters'] = [cluster for cluster in clusters if len(cluster) >= 3]
 
     def classify(self, vehicle_state):
         """

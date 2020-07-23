@@ -37,7 +37,7 @@ class Planning:
         # 2. Move towards it if there is a nearest ball (using A*)
         self.motion_planning(world_state)
 
-        plan_state = {
+        plan = {
             'pose': world_state['pose'],
             'trajectory': world_state['trajectory'],
             'grid': world_state['grid'],
@@ -45,7 +45,7 @@ class Planning:
             'direction': world_state['direction'],
             'tube_mode': world_state['tube_mode']
         }
-        return plan_state
+        return plan
 
     def behavior_planning(self, world_state):
         """
@@ -61,13 +61,13 @@ class Planning:
         direction = None
         tube_mode = None
 
-        if geom.dist(start, self.scoring_zone) <= 0.15 and world_state['ingestedBalls'] > 0:
+        if geom.dist(start, self.scoring_zone) <= 0.15 and world_state['numIngestedBalls'] > 0:
             # If we're in the scoring zone with some balls then run the outtake
             tube_mode = 'OUTTAKE'
             direction = 0
             goal = self.scoring_zone
 
-        elif world_state['ingestedBalls'] > 4:
+        elif world_state['numIngestedBalls'] > 4:
             # If we have >4 balls then drive backwards towards the goal
             tube_mode = 'INTAKE'
             direction = -1

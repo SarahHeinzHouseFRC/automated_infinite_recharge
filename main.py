@@ -8,6 +8,7 @@ import argparse
 from threading import Lock
 from comms import *
 from config import Config
+from sweep_builder import SweepBuilder
 from perception import Perception
 from planning import Planning
 from controls import Controls
@@ -41,6 +42,7 @@ def main():
     comms.start()
 
     # Launch perception, motion planning, and controls in main thread
+    sweep_builder = SweepBuilder()
     perception = Perception(config)
     planning = Planning(config)
     controls = Controls(config)
@@ -48,22 +50,23 @@ def main():
 
     try:
         while True:
-            if len(comms.vehicle_state['lidarSweep']) > 0:
-                t1 = time .time()
-                world_state = perception.run(comms.vehicle_state)
-                plan_state = planning.run(world_state)
+            vehicle_state = sweep_builder.run(comms.get_vehicle_states())
+            if vehicle_state is not None:
+                t1 = time.time()
 
-                new_commands = controls.run(plan_state)
-                # Unlock
+                world_state = perception.run(vehicle_state)
+                plan = planning.run(world_state)
+                vehicle_commands = controls.run(plan)
+
                 t2 = time .time()
                 freq = 1 / (t2 - t1)
                 print(f"Running at {freq} Hz")
 
-                new_commands['draw'] = visualize.run(world_state, plan_state)
+                vehicle_commands['draw'] = visualize.run(world_state, plan)
                 with commands_mutex:
                     # hold the lock to prevent the Comms thread from
                     # sending the commands dict while we're modifying it
-                    comms.vehicle_commands.update(new_commands)
+                    comms.vehicle_commands.update(vehicle_commands)
     except KeyboardInterrupt:
         pass
 

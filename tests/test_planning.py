@@ -26,7 +26,7 @@ class TestBehaviorPlanning(unittest.TestCase):
     def test_robot_runs_intake_and_goes_to_nearest_ball_while_far_from_goal_and_has_fewer_than_five_balls(self):
         world_state = {
             'pose': ((0, 0), 0),
-            'ingestedBalls': 0,
+            'numIngestedBalls': 0,
             'obstacles': {
                 'balls': [((2.5, 2.5), 0.1)]
             }
@@ -45,7 +45,7 @@ class TestBehaviorPlanning(unittest.TestCase):
     def test_robot_remembers_balls_within_lidar_deadzone(self):
         world_state = {
             'pose': ((0, 0), 0),
-            'ingestedBalls': 0,
+            'numIngestedBalls': 0,
             'obstacles': {
                 'balls': [((0.85, 0), 0.1)]
             }
@@ -55,7 +55,7 @@ class TestBehaviorPlanning(unittest.TestCase):
 
         world_state = {
             'pose': ((0, 0), 0),
-            'ingestedBalls': 0,
+            'numIngestedBalls': 0,
             'obstacles': {
                 'balls': []
             }
@@ -74,7 +74,7 @@ class TestBehaviorPlanning(unittest.TestCase):
     def test_robot_drives_to_goal_backwards_when_it_has_five_balls_and_is_far_from_goal(self):
         world_state = {
             'pose': ((0, 0), 0),
-            'ingestedBalls': 5,
+            'numIngestedBalls': 5,
             'obstacles': {
                 'balls': [((2.5, 2.5), 0.1)]
             }
@@ -93,7 +93,7 @@ class TestBehaviorPlanning(unittest.TestCase):
     def test_robot_scores_when_it_has_five_balls_and_is_at_goal(self):
         world_state = {
             'pose': ((-2.5, -2.5), 0),
-            'ingestedBalls': 5,
+            'numIngestedBalls': 5,
             'obstacles': {
                 'balls': [((2.5, 2.5), 0.1)]
             }
@@ -112,7 +112,7 @@ class TestBehaviorPlanning(unittest.TestCase):
     def test_robot_stays_at_goal_while_scoring(self):
         world_state = {
             'pose': ((-2.5, -2.5), 0),
-            'ingestedBalls': 4,
+            'numIngestedBalls': 4,
             'obstacles': {
                 'balls': [((2.5, 2.5), 0.1)]
             }
@@ -259,7 +259,7 @@ class TestRun(unittest.TestCase):
                 'balls': [((2.5, 2.5), 0.1)],
                 'others': [],
             },
-            'ingestedBalls': 0,
+            'numIngestedBalls': 0,
         }
 
         self.planning.run(world_state)

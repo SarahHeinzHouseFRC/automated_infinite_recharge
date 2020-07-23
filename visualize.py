@@ -7,7 +7,7 @@ class Visualize:
     def __init__(self):
         pass
 
-    def run(self, world_state, plan_state):
+    def run(self, world_state, plan):
         draw = []
 
         # Draw blue rectangles around all balls
@@ -43,12 +43,12 @@ class Visualize:
             })
 
         # Draw green line for nominal trajectory
-        if plan_state['trajectory'] is not None:
+        if plan['trajectory'] is not None:
             draw.append({
                 'shape': 'line',
                 'text': 'path',
                 'color': 'green',
-                'vertices': [[point[0], point[1]] for point in plan_state['trajectory']]
+                'vertices': [[point[0], point[1]] for point in plan['trajectory']]
             })
 
         # Draw grid
@@ -61,10 +61,10 @@ class Visualize:
                 'cellSize': 0.1,
                 'occupancy': []
         }
-        # for col in plan_state['grid'].grid:
+        # for col in plan['grid'].grid:
         #     for cell in col:
         #         grid_drawer['occupancy'].append(1 if cell.occupied else 0)
-        occupancy = plan_state['grid'].occupancy
+        occupancy = plan['grid'].occupancy
         for col in occupancy:
             for o in col:
                 grid_drawer['occupancy'].append(int(o))
