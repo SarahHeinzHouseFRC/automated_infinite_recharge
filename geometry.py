@@ -113,7 +113,7 @@ class OccupancyGrid:
         else:
             return None
 
-    def get_region(self, bbox):
+    def get_subgrid(self, bbox):
         """
         Returns the min/max column and row indices corresponding to the given bounding box
         :param bbox: Bounding box in the form ((min_x, min_y), (max_x, max_y))
@@ -135,7 +135,7 @@ class OccupancyGrid:
         Finds the grid cells corresponding to the given obstacle and marks them as occupied.
         :param obstacle: A rectangular obstacle in the form ((min_x, min_y), (max_x, max_y))
         """
-        min_col, min_row, max_col, max_row = self.get_region(obstacle)
+        min_col, min_row, max_col, max_row = self.get_subgrid(obstacle)
 
         for col in range(min_col, max_col+1):
             for row in range(min_row, max_row+1):
@@ -147,10 +147,11 @@ class OccupancyGrid:
         :param polygon: A Polygon type
         """
         # 1. Find the sub grid to iterate over
-        min_col, min_row, max_col, max_row = self.get_region(bounding_box(polygon.vertices))
+        min_col, min_row, max_col, max_row = self.get_subgrid(bounding_box(polygon.vertices))
+        subgrid = self.grid[min_col:max_col+1, min_row:max_row+1]
 
         # 2. Iterate over each column
-        for col in self.grid[min_col:max_col+1, min_row:max_row+1]:
+        for col in subgrid:
             col_x, _ = col[0].position
             # 3. In the current col, find all the contact points where the current col intersects with the polygon
             contact_cells = set()
@@ -171,7 +172,7 @@ class OccupancyGrid:
             # 4. Iterate over the contact points marking each cell in this row as occupied/unoccupied
             occupied_flag = 0
 
-            if len(contact_cells) != 1:
+            if len(contact_cells) > 1:
                 for cell in col:
                     self.occupancy[cell.indices] = occupied_flag or self.occupancy[cell.indices]
                     if cell in contact_cells:
@@ -467,6 +468,53 @@ def ccw(a, b, c):
     Reference: https://www.geeksforgeeks.org/orientation-3-ordered-points/
     """
     return (b[1] - a[1]) * (c[0] - b[0]) - (b[0] - a[0]) * (c[1] - b[1])
+
+
+def line_line_intersection(line1, line2):
+    """
+    Determines whether the two given line segments intersect. Note this algorithm does not catch the case when both line
+    segments are collinear.
+    Reference: http://www.jeffreythompson.org/collision-detection/line-rect.php
+    :param line1, line2: Line segments in the form ((x1, y1), (x2, y2))
+    :return: Point of intersection of the two line segments as tuple(x, y) or None if no intersection
+    """
+    ((x1, y1), (x2, y2)) = line1
+    ((x3, y3), (x4, y4)) = line2
+
+    den = ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1))
+    if den == 0:
+        return None  # This means the line segments are parallel or collinear
+    u_a = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / den
+    u_b = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / den
+
+    # If u_a and u_b are between 0-1, lines are colliding
+    if 0 <= u_a <= 1 and 0 <= u_b <= 1:
+        intersection_x = x1 + (u_a * (x2-x1))
+        intersection_y = y1 + (u_a * (y2-y1))
+        return intersection_x, intersection_y
+    else:
+        return None
+
+
+def line_rect_intersection(line, rect):
+    """
+    Determines whether the given line segment and rectangle intersect
+    Reference: http://www.jeffreythompson.org/collision-detection/line-rect.php
+    :param line: Line segment in the form ((min_x, min_y), (max_x, max_y))
+    :param rect: Rectangle in the form ((min_x, min_y), (max_x, max_y))
+    :return: List of either 0, 1, or 2 points of intersection
+    """
+    (r_min_x, r_min_y), (r_max_x, r_max_y) = rect
+    rx = r_min_x
+    ry = r_min_y
+    rw = r_max_x - r_min_x
+    rh = r_max_y - r_min_y
+    (x1, y1), (x2, y2) = line
+    left = line_line_intersection(((x1, y1), (x2, y2)), ((rx, ry), (rx, ry + rh)))
+    right = line_line_intersection(((x1, y1), (x2, y2)), ((rx + rw, ry), (rx + rw, ry + rh)))
+    top = line_line_intersection(((x1, y1), (x2, y2)), ((rx, ry), (rx + rw, ry)))
+    bottom = line_line_intersection(((x1, y1), (x2, y2)), ((rx, ry + rh), (rx + rw, ry + rh)))
+    return [p for p in [left, right, top, bottom] if p is not None]
 
 
 class Polygon:

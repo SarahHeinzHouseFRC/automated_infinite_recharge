@@ -132,7 +132,8 @@ class TestBehaviorPlanning(unittest.TestCase):
 class TestMotionPlanning(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
-        self.config.field_elements = []
+        self.config.field_columns = []
+        self.config.field_trenches = []
         self.config.occupancy_grid_width = 6
         self.config.occupancy_grid_height = 6
         self.config.occupancy_grid_cell_resolution = 1
@@ -166,7 +167,7 @@ class TestMotionPlanning(unittest.TestCase):
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
 
     def test_motion_planning_avoids_static_obstacle(self):
-        self.planning.field_elements = [Polygon(make_square_vertices(side_length=1.5, center=(0,0)))]
+        self.planning.field_columns = [Polygon(make_square_vertices(side_length=1.5, center=(0,0)))]
 
         world_state = {
             'obstacles': {
@@ -241,7 +242,8 @@ class TestMotionPlanning(unittest.TestCase):
 class TestRun(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
-        self.config.field_elements = []
+        self.config.field_columns = []
+        self.config.field_trenches = []
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
         self.config.occupancy_grid_width = 6
         self.config.occupancy_grid_height = 6

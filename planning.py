@@ -9,7 +9,8 @@ import geometry as geom
 class Planning:
     def __init__(self, config):
         self.field = config.outer_wall
-        self.field_elements = config.field_elements
+        self.field_columns = config.field_columns
+        self.field_trenches = config.field_trenches
         self.red_goal_region = config.red_goal_region
         self.blue_goal_region = config.blue_goal_region
         self.scoring_zone = self.blue_goal_region.center + np.array([0, 1])
@@ -113,8 +114,10 @@ class Planning:
         self.occupancy_grid.clear()
 
         # Insert static obstacles
-        for static_obstacle in self.field_elements:
+        for static_obstacle in self.field_columns:
             self.occupancy_grid.insert_convex_polygon(static_obstacle)
+        for static_obstacle in self.field_trenches:
+            self.occupancy_grid.insert_rectangular_obstacle(static_obstacle.bounding_box)
 
         # Insert dynamic obstacles
         dynamic_obstacles = world_state['obstacles']['others']

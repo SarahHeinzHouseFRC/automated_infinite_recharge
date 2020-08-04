@@ -377,6 +377,44 @@ class TestSmoother(unittest.TestCase):
         np.testing.assert_array_equal(expected, actual)
 
 
+class TestIntersections(unittest.TestCase):
+    def test_no_line_line_intersection(self):
+        line1 = (0, 0), (10, 10)
+        line2 = (1, 1), (11, 11)
+
+        expected = None
+        actual = geom.line_line_intersection(line1, line2)
+
+        self.assertEqual(expected, actual)
+
+    def test_line_line_intersection(self):
+        line1 = (-10, 0), (10, 0)
+        line2 = (0, -10), (0, 10)
+
+        expected = (0, 0)
+        actual = geom.line_line_intersection(line1, line2)
+
+        self.assertEqual(expected, actual)
+
+    def test_no_line_rect_intersection(self):
+        line = (-10, 10), (10, 10)
+        rect = (-5, -5), (5, 5)
+
+        expected = []
+        actual = geom.line_rect_intersection(line, rect)
+
+        self.assertEqual(expected, actual)
+
+    def test_line_rect_intersection(self):
+        line = (-10, 0), (10, 0)
+        rect = (-5, -5), (5, 5)
+
+        expected = [(-5, 0), (5, 0)]
+        actual = geom.line_rect_intersection(line, rect)
+
+        self.assertEqual(expected, actual)
+
+
 class TestCircleFit(unittest.TestCase):
     def test_make_circle(self):
         vertices = make_circular_vertices(radius=2, center=(2, 2), num_pts=3)

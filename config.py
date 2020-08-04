@@ -35,6 +35,15 @@ class Config:
             self.left_column = Polygon(IN_TO_M * np.array(config['sim']['field']['leftColumn']))
             self.top_column = Polygon(IN_TO_M * np.array(config['sim']['field']['topColumn']))
             self.bottom_column = Polygon(IN_TO_M * np.array(config['sim']['field']['bottomColumn']))
+
+            self.field_columns = [self.right_column,
+                                  self.left_column,
+                                  self.top_column,
+                                  self.bottom_column]
+            self.field_trenches = [self.right_trench_right_wall,
+                                   self.right_trench_left_wall,
+                                   self.left_trench_right_wall,
+                                   self.left_trench_left_wall]
             self.field_elements = [self.right_trench_right_wall,
                                    self.right_trench_left_wall,
                                    self.left_trench_right_wall,
@@ -43,6 +52,7 @@ class Config:
                                    self.left_column,
                                    self.top_column,
                                    self.bottom_column]
+
             self.red_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['redGoalRegion']))
             self.blue_goal_region = Polygon(IN_TO_M * np.array(config['sim']['field']['blueGoalRegion']))
 
