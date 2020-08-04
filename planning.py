@@ -77,11 +77,10 @@ class Planning:
             # The rest of the time, just run the intake and go towards the closest ball
             tube_mode = 'INTAKE'
             direction = 1
-            # 1. Add some object persistence so balls inside the LIDAR deadzone don't keep going out of view
+            # Recover any balls that are now within the deadzone
             if self.prev_obstacles is not None:
-                # Run through and recover any balls within the deadzone and place them into world_state
                 for ball in self.prev_obstacles:
-                    if 0.5 < geom.dist(start, ball[0]) <= self.deadzone_radius:
+                    if 0.5 < geom.dist(start, ball[0]) <= self.deadzone_radius and ball not in world_state['obstacles']['balls']:
                         world_state['obstacles']['balls'].append(ball)
             self.prev_obstacles = world_state['obstacles']['balls']
 

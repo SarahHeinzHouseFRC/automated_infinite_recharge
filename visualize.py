@@ -10,10 +10,12 @@ class Visualize:
     def run(self, world_state, plan):
         draw = []
 
-        # Draw blue rectangles around all balls
-        counter = 0
+        # Draw yellow rectangles around all balls
+        num_balls = len(world_state['obstacles']['balls'])
+        if num_balls > 50:
+            raise ValueError(f'Sending {num_balls} balls will overload comms')
+
         for ball in world_state['obstacles']['balls']:
-            counter += 1
             x, y = ball[0]
             radius = ball[1]
             draw.append({
@@ -26,7 +28,7 @@ class Visualize:
                 'height': 2*radius,
             })
 
-        # Draw yellow rectangles around all obstacles
+        # Draw red rectangles around all obstacles
         for obstacle in world_state['obstacles']['others']:
             min_x, min_y = obstacle[0]
             max_x, max_y = obstacle[1]
