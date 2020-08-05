@@ -49,7 +49,7 @@ class OccupancyGrid:
         self.num_rows = int(self.height / self.cell_resolution)
         self.grid = np.ndarray((self.num_cols, self.num_rows), dtype=Node)
 
-        self.occupancy = np.zeros(self.grid.shape, dtype=np.uint8)
+        self.occupancy = np.zeros(self.grid.shape, dtype=np.float)
 
         # 1. Create all the nodes
         for col in range(self.num_cols):
@@ -83,14 +83,19 @@ class OccupancyGrid:
                 if x > min_col and y > min_row:
                     node.neighbors.add(self.grid[x-1][y-1])
 
-    def clear(self):
+    def clear_node_parents(self):
         """
-        Marks all nodes as unoccupied and resets all parents
+        Resets all parents but does not mark cells as unoccupied
         """
         for col in self.grid:
             for cell in col:
                 cell.clear()
 
+    def clear(self):
+        """
+        Resets all parents and marks all nodes as unoccupied
+        """
+        self.clear_node_parents()
         self.occupancy.fill(0)
 
     def get_cell(self, point):
@@ -130,21 +135,23 @@ class OccupancyGrid:
         cell = self.get_cell(pos)
         return self.occupancy[cell.indices]
 
-    def insert_rectangular_obstacle(self, obstacle):
+    def insert_rectangular_obstacle(self, obstacle, growth_factor):
         """
         Finds the grid cells corresponding to the given obstacle and marks them as occupied.
         :param obstacle: A rectangular obstacle in the form ((min_x, min_y), (max_x, max_y))
+        :param growth_factor Increase the probability of an obstacle by this amount
         """
         min_col, min_row, max_col, max_row = self.get_subgrid(obstacle)
 
         for col in range(min_col, max_col+1):
             for row in range(min_row, max_row+1):
-                self.occupancy[col][row] = 1
+                self.occupancy[col][row] += growth_factor
 
-    def insert_convex_polygon(self, polygon):
+    def insert_convex_polygon(self, polygon, growth_factor):
         """
         Find the grid cells corresponding to each obstacle and marks them as occupied.
-        :param polygon: A Polygon type
+        :param polygon: A convex polygon
+        :param growth_factor Increase probability of an obstacle by this amount
         """
         # 1. Find the sub grid to iterate over
         min_col, min_row, max_col, max_row = self.get_subgrid(bounding_box(polygon.vertices))
@@ -174,17 +181,18 @@ class OccupancyGrid:
 
             if len(contact_cells) > 1:
                 for cell in col:
-                    self.occupancy[cell.indices] = occupied_flag or self.occupancy[cell.indices]
                     if cell in contact_cells:
-                        self.occupancy[cell.indices] = 1  # make sure contact cells are marked as occupied
+                        self.occupancy[cell.indices] += growth_factor  # make sure contact cells are marked as occupied
                         occupied_flag = not occupied_flag
+                    elif occupied_flag:
+                        self.occupancy[cell.indices] += growth_factor
             else:
                 for cell in contact_cells:
-                    self.occupancy[cell.indices] = 1  # make sure contact cells are marked as occupied
+                    self.occupancy[cell.indices] += growth_factor  # make sure contact cells are marked as occupied
 
-    def dilate(self, kernel_size):
+    def inflate_obstacles(self, kernel_size):
         """
-        Expand objects on grid by a buffer, equal to amount
+        Expand all occupied cells in the grid by a buffer
         :param kernel_size: Odd integer to use for sliding window
         """
         if kernel_size % 2 != 1:
@@ -194,11 +202,12 @@ class OccupancyGrid:
         self.occupancy = cv.dilate(self.occupancy, kernel)
 
 
-def a_star(occupancy_grid, start, goal):
+def a_star(occupancy_grid, occupancy_threshold, start, goal):
     """
     Returns a trajectory from start to goal as a list of Nodes or None if no path is found. The returned trajectory will
     start with the start node and end with the goal node and is guaranteed to have at least a length of 2.
     :param occupancy_grid: Occupancy grid
+    :param occupancy_threshold: Threshold for a cell to be considered occupied (0-1)
     :param start: Starting position
     :param goal: Goal position
     :return: List of trajectory points as list(tuple(x, y), ...)
@@ -214,7 +223,7 @@ def a_star(occupancy_grid, start, goal):
     queue = [(0, start_node)]
 
     # Make sure start_node and/or goal are not obstructed
-    if occupancy_grid.occupancy[start_node.indices] or occupancy_grid.occupancy[goal_node.indices]:
+    if occupancy_grid.get_occupancy(start) >= occupancy_threshold or occupancy_grid.get_occupancy(goal) >= occupancy_threshold:
         return None
 
     while len(queue) > 0 and goal_node.parent is None:
@@ -228,8 +237,8 @@ def a_star(occupancy_grid, start, goal):
                 neighbor.parent = curr_node
                 break
 
-            # If unvisited and not occupied, add it to the queue
-            if neighbor.parent is None and not occupancy_grid.occupancy[neighbor.indices]:
+            # If unvisited and unoccupied, add it to the queue
+            if neighbor.parent is None and occupancy_grid.occupancy[neighbor.indices] < occupancy_threshold:
                 neighbor.parent = curr_node
                 cost = occupancy_grid.cell_resolution  # g(x) = How much does it cost to travel go to this neighbor from curr_node?
                 heuristic = dist(neighbor.position, goal_node.position)  # h(x) = How close is curr_node to the goal?

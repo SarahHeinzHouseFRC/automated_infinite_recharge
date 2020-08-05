@@ -18,6 +18,12 @@ class TestBehaviorPlanning(unittest.TestCase):
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
+        self.config.ball_probability_decay_factor = 0
+        self.config.ball_probability_growth_factor = 1
+        self.config.ball_probability_threshold = 1
+        self.config.obstacle_probability_decay_factor = 0
+        self.config.obstacle_probability_growth_factor = 1
+        self.config.obstacle_probability_threshold = 1
         self.config.lidar_deadzone_radius = 0.85
         self.config.blue_player_station_pos = np.array([10, 10])
 
@@ -27,9 +33,8 @@ class TestBehaviorPlanning(unittest.TestCase):
         world_state = {
             'pose': ((0, 0), 0),
             'numIngestedBalls': 0,
-            'obstacles': {
-                'balls': [((2.5, 2.5), 0.1)]
-            }
+            'balls': [(2.5, 2.5)],
+            'obstacles': []
         }
 
         self.planning.behavior_planning(world_state)
@@ -46,9 +51,8 @@ class TestBehaviorPlanning(unittest.TestCase):
         world_state = {
             'pose': ((0, 0), 0),
             'numIngestedBalls': 0,
-            'obstacles': {
-                'balls': [((0.85, 0), 0.1)]
-            }
+            'balls': [(0.5, 0.5)],
+            'obstacles': []
         }
 
         self.planning.behavior_planning(world_state)
@@ -56,15 +60,14 @@ class TestBehaviorPlanning(unittest.TestCase):
         world_state = {
             'pose': ((0, 0), 0),
             'numIngestedBalls': 0,
-            'obstacles': {
-                'balls': []
-            }
+            'balls': [],
+            'obstacles': [],
         }
 
         self.planning.behavior_planning(world_state)
 
         expected = {
-            'goal': (0.85, 0),
+            'goal': (0.5, 0.5),
             'direction': 1,
             'tube_mode': 'INTAKE'
         }
@@ -75,9 +78,8 @@ class TestBehaviorPlanning(unittest.TestCase):
         world_state = {
             'pose': ((0, 0), 0),
             'numIngestedBalls': 5,
-            'obstacles': {
-                'balls': [((2.5, 2.5), 0.1)]
-            }
+            'balls': [(2.5, 2.5)],
+            'obstacles': []
         }
 
         self.planning.behavior_planning(world_state)
@@ -94,9 +96,8 @@ class TestBehaviorPlanning(unittest.TestCase):
         world_state = {
             'pose': ((-2.5, -2.5), 0),
             'numIngestedBalls': 5,
-            'obstacles': {
-                'balls': [((2.5, 2.5), 0.1)]
-            }
+            'balls': [(2.5, 2.5)],
+            'obstacles': []
         }
 
         self.planning.behavior_planning(world_state)
@@ -113,9 +114,8 @@ class TestBehaviorPlanning(unittest.TestCase):
         world_state = {
             'pose': ((-2.5, -2.5), 0),
             'numIngestedBalls': 4,
-            'obstacles': {
-                'balls': [((2.5, 2.5), 0.1)]
-            }
+            'balls': [(2.5, 2.5)],
+            'obstacles': []
         }
 
         self.planning.behavior_planning(world_state)
@@ -139,6 +139,12 @@ class TestMotionPlanning(unittest.TestCase):
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
+        self.config.ball_probability_decay_factor = 0
+        self.config.ball_probability_growth_factor = 1
+        self.config.ball_probability_threshold = 1
+        self.config.obstacle_probability_decay_factor = 0
+        self.config.obstacle_probability_growth_factor = 1
+        self.config.obstacle_probability_threshold = 1
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -2.5)))
         self.config.blue_player_station_pos = np.array([10, 10])
 
@@ -149,9 +155,7 @@ class TestMotionPlanning(unittest.TestCase):
 
     def test_motion_planning_with_empty_world(self):
         world_state = {
-            'obstacles': {
-                'others': [],
-            },
+            'obstacles': [],
             'pose': self.pose,
             'goal': self.goal,
         }
@@ -170,9 +174,7 @@ class TestMotionPlanning(unittest.TestCase):
         self.planning.field_columns = [Polygon(make_square_vertices(side_length=1.5, center=(0,0)))]
 
         world_state = {
-            'obstacles': {
-                'others': [],
-            },
+            'obstacles': [],
             'pose': self.pose,
             'goal': self.goal,
         }
@@ -190,9 +192,7 @@ class TestMotionPlanning(unittest.TestCase):
 
     def test_motion_planning_avoids_dynamic_obstacle(self):
         world_state = {
-            'obstacles': {
-                'others': [((-0.5, -0.5), (0.5, 0.5))],
-            },
+            'obstacles': [((-0.5, -0.5), (0.5, 0.5))],
             'pose': self.pose,
             'goal': self.goal,
         }
@@ -210,24 +210,20 @@ class TestMotionPlanning(unittest.TestCase):
 
     def test_motion_planning_returns_none_when_no_feasible_trajectory(self):
         world_state = {
-            'obstacles': {
-                'others': [((1, 1), (2, 2))],
-            },
+            'obstacles': [((1, 1), (2, 2))],
             'pose': self.pose,
             'goal': self.goal,
         }
 
-        goal_cell = self.planning.occupancy_grid.get_cell(self.goal)
-        self.planning.occupancy_grid.occupancy[goal_cell.indices] = 1
+        goal_cell = self.planning.obstacle_grid.get_cell(self.goal)
+        self.planning.obstacle_grid.occupancy[goal_cell.indices] = 1
         self.planning.motion_planning(world_state)
 
         self.assertIsNone(world_state['trajectory'])
 
     def test_motion_planning_returns_trivial_plan_when_goal_reached(self):
         world_state = {
-            'obstacles': {
-                'others': [],
-            },
+            'obstacles': [],
             'pose': self.pose,
             'goal': self.pose[0],
         }
@@ -250,6 +246,12 @@ class TestRun(unittest.TestCase):
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
+        self.config.ball_probability_decay_factor = 0
+        self.config.ball_probability_growth_factor = 1
+        self.config.ball_probability_threshold = 1
+        self.config.obstacle_probability_decay_factor = 0
+        self.config.obstacle_probability_growth_factor = 1
+        self.config.obstacle_probability_threshold = 1
         self.config.blue_player_station_pos = np.array([10, 10])
 
         self.planning = Planning(self.config)
@@ -257,10 +259,8 @@ class TestRun(unittest.TestCase):
     def test_run(self):
         world_state = {
             'pose': ((-2.5, -2.5), 0),
-            'obstacles': {
-                'balls': [((2.5, 2.5), 0.1)],
-                'others': [],
-            },
+            'balls': [(2.5, 2.5)],
+            'obstacles': [],
             'numIngestedBalls': 0,
         }
 

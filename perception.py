@@ -35,17 +35,10 @@ class Perception:
         # Classification
         self.classify(vehicle_state)
 
-        """
-        Return pose as ((x, y), theta)
-        Return obstacles as
-        {
-            'balls': list(),
-            'others': list()
-        }
-        """
         world_state = {
             'pose': ((vehicle_state['x'], vehicle_state['y']), vehicle_state['theta']),
-            'obstacles': vehicle_state['classes'],
+            'balls': vehicle_state['balls'],
+            'obstacles': vehicle_state['obstacles'],
             'numIngestedBalls': vehicle_state['numIngestedBalls']
         }
 
@@ -90,8 +83,8 @@ class Perception:
         # side length of buckets in meters
         BIN_SIZE = 0.1
 
-        worldSweep = vehicle_state['lidarSweep']
-        foreground_points = worldSweep[vehicle_state['lidarSweepMask']]
+        sweep = vehicle_state['lidarSweep']
+        foreground_points = sweep[vehicle_state['lidarSweepMask']]  # Apply foreground mask to sweep
 
         # Bucketize all points into a defaultdict of this form:
         # buckets = {
@@ -109,23 +102,23 @@ class Perception:
 
     def classify(self, vehicle_state):
         """
-        Classifies each cluster of points as either GAMEPIECE or ROBOT from vehicle_state['clusters'], which is an Nx2
-        array of points. The result is stored into vehicle_state['classes'] as an Nx1 array of ints, 1 for GAMEPIECE
-        or 2 for ROBOT.
+        Classifies each cluster of points as either ball or obstacle from vehicle_state['clusters'], which is an Nx2
+        array of points. The resulting balls are stored into vehicle_state['balls'] as a list of circles as
+        ((x, y), radius) and the resulting obstacles are placed into vehicle_state['obstacles'] as a list of rectangles
+        as ((min_x, min_y), (max_x, max_y))
         """
         clusters = vehicle_state['clusters']
         balls = list()
-        others = list()
+        obstacles = list()
 
         for cluster in clusters:
-            circle = geom.ransac_circle_fit(cluster, desired_radius=self.ball_radius, consensus=0.99, tolerance=0.03, iterations=10)
-            if circle is not None: # Balls are 3.5" in radius
-                balls.append(circle)
+            ball = geom.ransac_circle_fit(cluster, desired_radius=self.ball_radius, consensus=0.99, tolerance=0.03, iterations=10)
+            if ball is not None:
+                ball_pos, ball_radius = ball
+                balls.append(ball_pos)
             else:
-                # Construct a bounding box and put into others list
-                others.append(geom.bounding_box(cluster))
+                # Construct a bounding box and put into obstacles list
+                obstacles.append(geom.bounding_box(cluster))
 
-        vehicle_state['classes'] = {
-            'balls': balls,
-            'others': others
-        }
+        vehicle_state['balls'] = balls
+        vehicle_state['obstacles'] = obstacles

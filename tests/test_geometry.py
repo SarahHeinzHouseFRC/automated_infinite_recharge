@@ -65,6 +65,13 @@ class TestGridClass(unittest.TestCase):
         self.assertEqual(expected_num_rows, self.occupancy_grid.num_rows)
         self.assertEqual(expected_num_cols, self.occupancy_grid.num_cols)
 
+    def test_clear_node_parents(self):
+        self.occupancy_grid.clear_node_parents()
+
+        for col in self.occupancy_grid.grid:
+            for cell in col:
+                self.assertEqual(cell.parent, None)
+
     def test_clear(self):
         self.occupancy_grid.clear()
 
@@ -81,7 +88,7 @@ class TestGridClass(unittest.TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test_get_cell_invalid(self):
+    def test_get_cell_out_of_bounds(self):
         cell = self.occupancy_grid.get_cell((10, 10))
 
         self.assertIsNone(cell)
@@ -89,7 +96,7 @@ class TestGridClass(unittest.TestCase):
     def test_insert_rectangular_obstacle(self):
         rect = ((1, 1), (1.5, 1.5))
 
-        self.occupancy_grid.insert_rectangular_obstacle(rect)
+        self.occupancy_grid.insert_rectangular_obstacle(rect, 1.0)
 
         expected = [0] * 15 + [1]
         actual = self.occupancy_grid.occupancy.flatten(order='F')
@@ -99,7 +106,7 @@ class TestGridClass(unittest.TestCase):
         vertices = make_square_vertices(side_length=0.5, center=(1.25, 1.25))
         square = Polygon(vertices)
 
-        self.occupancy_grid.insert_convex_polygon(square)
+        self.occupancy_grid.insert_convex_polygon(square, 1.0)
 
         expected = [0] * 15 + [1]
         actual = self.occupancy_grid.occupancy.flatten(order='F')
@@ -108,7 +115,7 @@ class TestGridClass(unittest.TestCase):
     def test_insert_convex_polygon_with_circular_obstacle(self):
         circle = Polygon(make_circular_vertices(radius=1, center=(0, 0), num_pts=8))
 
-        self.occupancy_grid.insert_convex_polygon(circle)
+        self.occupancy_grid.insert_convex_polygon(circle, 1.0)
 
         expected = [0] * 16
         expected[5] = 1
@@ -119,7 +126,7 @@ class TestGridClass(unittest.TestCase):
         np.testing.assert_array_equal(expected, actual)
 
     def test_dilation_of_empty_grid(self):
-        self.occupancy_grid.dilate(kernel_size=3)
+        self.occupancy_grid.inflate_obstacles(kernel_size=3)
 
         expected = [0] * 16
         actual = self.occupancy_grid.occupancy.flatten(order='F')
@@ -128,7 +135,7 @@ class TestGridClass(unittest.TestCase):
 
     def test_dilation_of_single_cell(self):
         self.occupancy_grid.occupancy[1][1] = 1
-        self.occupancy_grid.dilate(kernel_size=3)
+        self.occupancy_grid.inflate_obstacles(kernel_size=3)
 
         expected = [1]*3 + [0] + [1]*3 + [0] + [1]*3 + [0]*5
         actual = self.occupancy_grid.occupancy.flatten(order='F')
@@ -136,7 +143,7 @@ class TestGridClass(unittest.TestCase):
         np.testing.assert_array_equal(expected, actual)
 
     def test_dilation_with_odd_kernel_throws(self):
-        self.assertRaises(ValueError, self.occupancy_grid.dilate, kernel_size=6)
+        self.assertRaises(ValueError, self.occupancy_grid.inflate_obstacles, kernel_size=6)
 
 
 class TestCounterclockwise(unittest.TestCase):
@@ -334,17 +341,17 @@ class TestAStar(unittest.TestCase):
     def test_a_star_fails_when_start_occluded(self):
         start_node = self.occupancy_grid.get_cell(self.start)
         self.occupancy_grid.occupancy[start_node.indices] = 1
-        result = geom.a_star(self.occupancy_grid, self.start, self.goal)
+        result = geom.a_star(self.occupancy_grid, 1.0, self.start, self.goal)
         self.assertIsNone(result)
 
     def test_a_star_fails_when_goal_occluded(self):
         goal_node = self.occupancy_grid.get_cell(self.goal)
         self.occupancy_grid.occupancy[goal_node.indices] = 1
-        result = geom.a_star(self.occupancy_grid, self.start, self.goal)
+        result = geom.a_star(self.occupancy_grid, 1.0, self.start, self.goal)
         self.assertIsNone(result)
 
     def test_a_star_succeeds_when_all_cells_unoccupied(self):
-        result = geom.a_star(self.occupancy_grid, self.start, self.goal)
+        result = geom.a_star(self.occupancy_grid, 1.0, self.start, self.goal)
         expected = 4
         actual = len(result)
         self.assertEqual(expected, actual)
@@ -353,7 +360,7 @@ class TestAStar(unittest.TestCase):
         self.occupancy_grid.occupancy[2,3] = 1
         self.occupancy_grid.occupancy[2,2] = 1
         self.occupancy_grid.occupancy[3,2] = 1
-        result = geom.a_star(self.occupancy_grid, self.start, self.goal)
+        result = geom.a_star(self.occupancy_grid, 1.0, self.start, self.goal)
         self.assertIsNone(result)
 
 

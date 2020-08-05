@@ -46,7 +46,7 @@ def main():
     perception = Perception(config)
     planning = Planning(config)
     controls = Controls(config)
-    visualize = Visualize()
+    visualize = Visualize(config)
 
     try:
         while True:

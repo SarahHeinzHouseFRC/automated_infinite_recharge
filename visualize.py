@@ -4,20 +4,20 @@
 
 
 class Visualize:
-    def __init__(self):
-        pass
+    def __init__(self, config):
+        self.ball_radius = config.ball_radius
 
     def run(self, world_state, plan):
         draw = []
 
         # Draw yellow rectangles around all balls
-        num_balls = len(world_state['obstacles']['balls'])
+        num_balls = len(world_state['balls'])
         if num_balls > 50:
             raise ValueError(f'Sending {num_balls} balls will overload comms')
 
-        for ball in world_state['obstacles']['balls']:
-            x, y = ball[0]
-            radius = ball[1]
+        for ball in world_state['balls']:
+            x, y = ball
+            radius = self.ball_radius
             draw.append({
                 'shape': 'box',
                 'text': 'ball',
@@ -29,7 +29,7 @@ class Visualize:
             })
 
         # Draw red rectangles around all obstacles
-        for obstacle in world_state['obstacles']['others']:
+        for obstacle in world_state['obstacles']:
             min_x, min_y = obstacle[0]
             max_x, max_y = obstacle[1]
             width = max_x - min_x
@@ -48,7 +48,7 @@ class Visualize:
         if plan['trajectory'] is not None:
             draw.append({
                 'shape': 'line',
-                'text': 'path',
+                'text': 'trajectory',
                 'color': 'green',
                 'vertices': [[point[0], point[1]] for point in plan['trajectory']]
             })
@@ -63,12 +63,9 @@ class Visualize:
                 'cellSize': 0.1,
                 'occupancy': []
         }
-        # for col in plan['grid'].grid:
-        #     for cell in col:
-        #         grid_drawer['occupancy'].append(1 if cell.occupied else 0)
         occupancy = plan['grid'].occupancy
         for col in occupancy:
             for o in col:
-                grid_drawer['occupancy'].append(int(o))
+                grid_drawer['occupancy'].append(int(100*o))
         draw.append(grid_drawer)
         return draw

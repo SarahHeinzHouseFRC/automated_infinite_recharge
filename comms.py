@@ -37,7 +37,7 @@ class CommsThread(Thread):
                 # hold the lock while we're working on this,
                 # so the planning code doesn't modify it while
                 # we're in the middle of transmitting it
-                tx_msg = json.dumps(self.vehicle_commands)
+                tx_msg = json.dumps(self.vehicle_commands, separators=(',', ':'))
             self.comms.tx(tx_msg)
             if self.verbose:
                 print('Sent: {tx_msg}')

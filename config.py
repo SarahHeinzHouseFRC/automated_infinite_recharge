@@ -66,6 +66,14 @@ class Config:
             self.occupancy_grid_origin = (0, 0)
             self.occupancy_grid_dilation_kernel_size = 13
 
+            self.ball_probability_decay_factor = 0.01
+            self.ball_probability_growth_factor = 0.2
+            self.ball_probability_threshold = 0.8
+
+            self.obstacle_probability_decay_factor = 0.05
+            self.obstacle_probability_growth_factor = 0.1
+            self.obstacle_probability_threshold = 0.8
+
             # LIDAR
             self.lidar_deadzone_radius = 0.85
 

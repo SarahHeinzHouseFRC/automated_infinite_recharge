@@ -67,8 +67,8 @@ class TestClassification(unittest.TestCase):
 
         self.perception.classify(vehicle_state)
 
-        self.assertEqual(len(vehicle_state['classes']['balls']), 1)
-        self.assertEqual(len(vehicle_state['classes']['others']), 0)
+        self.assertEqual(len(vehicle_state['balls']), 1)
+        self.assertEqual(len(vehicle_state['obstacles']), 0)
 
     def test_classification_of_circular_points_wrong_size(self):
         vehicle_state = {
@@ -77,8 +77,8 @@ class TestClassification(unittest.TestCase):
 
         self.perception.classify(vehicle_state)
 
-        self.assertEqual(len(vehicle_state['classes']['balls']), 0)
-        self.assertEqual(len(vehicle_state['classes']['others']), 1)
+        self.assertEqual(len(vehicle_state['balls']), 0)
+        self.assertEqual(len(vehicle_state['obstacles']), 1)
 
     def test_classification_of_non_circular_points(self):
         vehicle_state = {
@@ -87,8 +87,8 @@ class TestClassification(unittest.TestCase):
 
         self.perception.classify(vehicle_state)
 
-        self.assertEqual(len(vehicle_state['classes']['balls']), 0)
-        self.assertEqual(len(vehicle_state['classes']['others']), 1)
+        self.assertEqual(len(vehicle_state['balls']), 0)
+        self.assertEqual(len(vehicle_state['obstacles']), 1)
 
 
 class TestRun(unittest.TestCase):
@@ -119,21 +119,16 @@ class TestRun(unittest.TestCase):
 
         world_state = self.perception.run(vehicle_state)
 
-        actual_balls = world_state['obstacles']['balls']
+        actual_balls = world_state['balls']
         actual_first_ball = actual_balls[0]
-        actual_first_ball_position = actual_first_ball[0]
-        actual_first_ball_radius = actual_first_ball[1]
-        actual_others = world_state['obstacles']['others']
-        expected_balls = [((1, 1), BALL_RADIUS)]
+        actual_others = world_state['obstacles']
+        expected_balls = [(1, 1)]
         expected_others = [((5.0, 5.0), (5.95, 5.95))]
         expected_first_ball = expected_balls[0]
-        expected_first_ball_position = expected_first_ball[0]
-        expected_first_ball_radius = expected_first_ball[1]
 
         self.assertEqual(len(expected_balls), len(actual_balls))
-        self.assertAlmostEqual(expected_first_ball_position[0], actual_first_ball_position[0])
-        self.assertAlmostEqual(expected_first_ball_position[1], actual_first_ball_position[1])
-        self.assertAlmostEqual(expected_first_ball_radius, actual_first_ball_radius)
+        self.assertAlmostEqual(expected_first_ball[0], actual_first_ball[0])
+        self.assertAlmostEqual(expected_first_ball[1], actual_first_ball[1])
 
         self.assertEqual(expected_others, actual_others)
 
