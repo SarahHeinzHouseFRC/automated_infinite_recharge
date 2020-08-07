@@ -4,7 +4,7 @@
 
 import numpy as np
 from collections import defaultdict
-from math import atan2
+from math import atan2, sqrt
 import cv2 as cv
 
 
@@ -63,25 +63,27 @@ class OccupancyGrid:
         max_col = self.num_cols-1
         min_row = 0
         max_row = self.num_rows-1
+        adjacent_cell_cost = self.cell_resolution
+        diagonal_cell_cost = self.cell_resolution * sqrt(2)
         for x in range(self.num_cols):
             for y in range(self.num_rows):
                 node = self.grid[x][y]
                 if x < max_col:
-                    node.neighbors.add(self.grid[x+1][y])
+                    node.neighbors.add((self.grid[x+1][y], adjacent_cell_cost))
                 if x > min_col:
-                    node.neighbors.add(self.grid[x-1][y])
+                    node.neighbors.add((self.grid[x-1][y], adjacent_cell_cost))
                 if y < max_row:
-                    node.neighbors.add(self.grid[x][y+1])
+                    node.neighbors.add((self.grid[x][y+1], adjacent_cell_cost))
                 if y > min_row:
-                    node.neighbors.add(self.grid[x][y-1])
+                    node.neighbors.add((self.grid[x][y-1], adjacent_cell_cost))
                 if x < max_col and y < max_row:
-                    node.neighbors.add(self.grid[x+1][y+1])
+                    node.neighbors.add((self.grid[x+1][y+1], diagonal_cell_cost))
                 if x > min_col and y < max_row:
-                    node.neighbors.add(self.grid[x-1][y+1])
+                    node.neighbors.add((self.grid[x-1][y+1], diagonal_cell_cost))
                 if x < max_col and y > min_row:
-                    node.neighbors.add(self.grid[x+1][y-1])
+                    node.neighbors.add((self.grid[x+1][y-1], diagonal_cell_cost))
                 if x > min_col and y > min_row:
-                    node.neighbors.add(self.grid[x-1][y-1])
+                    node.neighbors.add((self.grid[x-1][y-1], diagonal_cell_cost))
 
     def clear_node_parents(self):
         """
@@ -231,7 +233,7 @@ def a_star(occupancy_grid, occupancy_threshold, start, goal):
         _, curr_node = queue.pop(0)
 
         # Run through its neighbors
-        for neighbor in curr_node.neighbors:
+        for neighbor, neighbor_cost in curr_node.neighbors:
             # If we found the goal, break out
             if neighbor == goal_node:
                 neighbor.parent = curr_node
@@ -240,7 +242,7 @@ def a_star(occupancy_grid, occupancy_threshold, start, goal):
             # If unvisited and unoccupied, add it to the queue
             if neighbor.parent is None and occupancy_grid.occupancy[neighbor.indices] < occupancy_threshold:
                 neighbor.parent = curr_node
-                cost = occupancy_grid.cell_resolution  # g(x) = How much does it cost to travel go to this neighbor from curr_node?
+                cost = neighbor_cost  # g(x) = How much does it cost to travel go to this neighbor from curr_node?
                 heuristic = dist(neighbor.position, goal_node.position)  # h(x) = How close is curr_node to the goal?
                 score = heuristic + cost  # f(x) = g(x) + h(x)
                 queue.append((score, neighbor))
