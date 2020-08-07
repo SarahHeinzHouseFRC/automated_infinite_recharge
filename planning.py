@@ -173,8 +173,8 @@ class Planning:
             goal = world_state['goal']
             trajectory = geom.a_star(self.obstacle_grid, self.obstacle_probability_threshold, start, goal)
 
-        # if trajectory:
-        #     trajectory = geom.smooth_trajectory(trajectory)
+        if trajectory:
+            trajectory = geom.smooth_trajectory(trajectory, self.obstacle_grid, self.obstacle_probability_threshold)
 
         world_state['trajectory'] = trajectory
         world_state['grid'] = self.obstacle_grid

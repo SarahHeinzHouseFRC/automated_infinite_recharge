@@ -6,6 +6,7 @@ import numpy as np
 from collections import defaultdict
 from math import atan2, sqrt
 import cv2 as cv
+from bresenham import bresenham
 
 
 class Node:
@@ -137,6 +138,10 @@ class OccupancyGrid:
         cell = self.get_cell(pos)
         return self.occupancy[cell.indices]
 
+    def set_occupancy(self, pos, occupancy_value):
+        cell_indices = self.get_cell(pos).indices
+        self.occupancy[cell_indices] = occupancy_value
+
     def insert_rectangular_obstacle(self, obstacle, growth_factor):
         """
         Finds the grid cells corresponding to the given obstacle and marks them as occupied.
@@ -202,6 +207,20 @@ class OccupancyGrid:
 
         kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
         self.occupancy = cv.dilate(self.occupancy, kernel)
+
+    def query_line(self, p1, p2, occupancy_threshold):
+        """
+        Returns whether the given line segment collides with an obstacle or not using Bresenham's line algorithm.
+        :param p1, p2: Endpoints of the line segment in the form tuple(x, y)
+        :param occupancy_threshold: Threshold for a cell to be considered occupied (0-1)
+        :return: True or False
+        """
+        start_cell_col, start_cell_row = self.get_cell(p1).indices
+        end_cell_col, end_cell_row = self.get_cell(p2).indices
+
+        cells_to_check = bresenham(start_cell_col, start_cell_row, end_cell_col, end_cell_row)
+        occupancies = [self.occupancy[cell] >= occupancy_threshold for cell in cells_to_check]
+        return any(occupancies)
 
 
 def a_star(occupancy_grid, occupancy_threshold, start, goal):
@@ -271,37 +290,37 @@ def a_star(occupancy_grid, occupancy_threshold, start, goal):
     return path
 
 
-def smooth_trajectory(trajectory):
+def smooth_trajectory(trajectory, occupancy_grid, occupancy_threshold):
     """
-    Smooths out the kinks in the given trajectory. Any turn in the path that is more than 45 degrees is a "real" turn,
-    and any turn that is -45 < theta < 45 degrees is a "kink" or redundant and can be removed.
+    Smooths out the kinks in the given trajectory. Returns the fewest waypoints that can be connected together without
+    resulting in a collision.
 
-    E.g. [(0.1, 0), (1, 1), (2, 2), (3, 2)] -> [(0.1, 0), (2, 2), (3, 2)]
+    E.g. in an empty world, [(0, 0), (1, 1), (2, 2), (3, 2)] -> [(0, 0), (3, 2)]
 
-    :param trajectory: List of points as tuples
+    :param trajectory: List of waypoints as tuples
+    :param occupancy_grid: Occupancy grid to check collisions against
+    :param occupancy_threshold: Threshold for a cell to be considered occupied (0-1)
     :return: Same as previous list but with points removed
     """
-    # nothing to do if less than 3 points
+    # Nothing to do if less than 3 points
     if len(trajectory) < 3:
         return trajectory
 
-    smoothed_trajectory = [trajectory[0]]
+    # Start and end should always be in the new trajectory
+    start = trajectory[0]
+    end = trajectory[-1]
 
-    for p1,p2,p3 in zip(trajectory[:], trajectory[1:], trajectory[2:]):
-        v1 = np.array(p2) - np.array(p1)
-        v2 = np.array(p3) - np.array(p2)
-        x1 = v1[0]
-        y1 = v1[1]
-        x2 = v2[0]
-        y2 = v2[1]
-        theta = atan2(x1 * y2 - y1 * x2, x1 * x2 + y1 * y2)
+    new_trajectory = [start]
+    prev_waypoint = start
+    for waypoint in trajectory[1:]:
+        collision = occupancy_grid.query_line(new_trajectory[-1], waypoint, occupancy_threshold)
+        if collision:
+            new_trajectory.append(prev_waypoint)
+        prev_waypoint = waypoint
+    if new_trajectory[-1] != tuple(end):
+        new_trajectory.append(end)
 
-        TURN_THRESHOLD = np.pi / 4
-        if abs(theta) >= TURN_THRESHOLD:
-            smoothed_trajectory.append(p2)
-
-    smoothed_trajectory.append(trajectory[-1])
-    return smoothed_trajectory
+    return new_trajectory
 
 
 def bounding_box(points):

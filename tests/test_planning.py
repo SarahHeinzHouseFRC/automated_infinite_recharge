@@ -162,7 +162,7 @@ class TestMotionPlanning(unittest.TestCase):
 
         self.planning.motion_planning(world_state)
 
-        expected_trajectory_length = 6
+        expected_trajectory_length = 2
         actual_trajectory_length = len(world_state['trajectory'])
         expected_occupancy_grid = np.zeros(shape=(6,6))
         actual_occupancy_grid = world_state['grid'].occupancy
@@ -184,7 +184,7 @@ class TestMotionPlanning(unittest.TestCase):
         expected_occupancy_grid = np.zeros(shape=(6,6), dtype=np.uint8)
         expected_occupancy_grid[1:5,1:5] = np.ones(shape=(4,4))
         actual_occupancy_grid = world_state['grid'].occupancy
-        expected_trajectory_length = 10
+        expected_trajectory_length = 4
 
         actual_trajectory_length = len(world_state['trajectory'])
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
@@ -202,7 +202,7 @@ class TestMotionPlanning(unittest.TestCase):
         expected_occupancy_grid = np.zeros(shape=(6, 6), dtype=np.uint8)
         expected_occupancy_grid[1:5, 1:5] = np.ones(shape=(4, 4))
         actual_occupancy_grid = world_state['grid'].occupancy
-        expected_trajectory_length = 10
+        expected_trajectory_length = 4
         actual_trajectory_length = len(world_state['trajectory'])
 
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
@@ -266,7 +266,7 @@ class TestRun(unittest.TestCase):
 
         self.planning.run(world_state)
 
-        expected = 6
+        expected = 2
         actual = len(world_state['trajectory'])
 
         self.assertEqual(expected, actual)

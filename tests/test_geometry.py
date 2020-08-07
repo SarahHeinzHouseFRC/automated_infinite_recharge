@@ -145,6 +145,15 @@ class TestGridClass(unittest.TestCase):
     def test_dilation_with_odd_kernel_throws(self):
         self.assertRaises(ValueError, self.occupancy_grid.inflate_obstacles, kernel_size=6)
 
+    def test_query_line_with_empty_world_returns_false(self):
+        ret = self.occupancy_grid.query_line((-1.5, -1.5), (1.5, 1.5), 1)
+        self.assertFalse(ret)
+
+    def test_query_line_with_obstacle_returns_true(self):
+        self.occupancy_grid.occupancy[0,0] = 1
+        ret = self.occupancy_grid.query_line((-1.5, -1.5), (1.5, 1.5), 1)
+        self.assertTrue(ret)
+
 
 class TestCounterclockwise(unittest.TestCase):
     def setUp(self):
@@ -365,9 +374,17 @@ class TestAStar(unittest.TestCase):
 
 
 class TestSmoother(unittest.TestCase):
+    def setUp(self):
+        self.height = 4
+        self.width = 4
+        self.cell_resolution = 1
+        self.origin = (0, 0)
+
+        self.occupancy_grid = OccupancyGrid(self.width, self.height, self.cell_resolution, self.origin)
+
     def test_trajectory_with_two_points_remains_unchanged(self):
-        trajectory = [(0.1, 0), (1, 1)]
-        smoothed_trajectory = geom.smooth_trajectory(trajectory)
+        trajectory = [(-1.5, -1.5), (1.5, 1.5)]
+        smoothed_trajectory = geom.smooth_trajectory(trajectory, self.occupancy_grid, 1)
 
         expected = trajectory
         actual = smoothed_trajectory
@@ -375,10 +392,11 @@ class TestSmoother(unittest.TestCase):
         np.testing.assert_array_equal(expected, actual)
 
     def test_smoother_removes_extraneous_points(self):
-        trajectory = [(0.1, 0), (1, 1), (2, 2), (3, 2)]
-        smoothed_trajectory = geom.smooth_trajectory(trajectory)
+        trajectory = [(-1.5, -1.5), (-0.5, -0.5), (0.5, 0.5), (1.5, 0.5)]
+        self.occupancy_grid.set_occupancy((0.5, -0.5), 1)
+        smoothed_trajectory = geom.smooth_trajectory(trajectory, self.occupancy_grid, 1)
 
-        expected = [(0.1, 0), (2, 2), (3, 2)]
+        expected = [(-1.5, -1.5), (0.5, 0.5), (1.5, 0.5)]
         actual = smoothed_trajectory
 
         np.testing.assert_array_equal(expected, actual)
