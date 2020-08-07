@@ -54,16 +54,17 @@ class Visualize:
             })
 
         # Draw grid
+        occupancy_grid = plan['grid']
         grid_drawer = {
                 'shape': 'grid',
                 'text': 'grid1',
                 'color': 'darkgray',
-                'cols': 100,
-                'rows': 160,
-                'cellSize': 0.1,
+                'cols': occupancy_grid.num_cols,
+                'rows': occupancy_grid.num_rows,
+                'cellSize': occupancy_grid.cell_resolution,
                 'occupancy': []
         }
-        occupancy = plan['grid'].occupancy
+        occupancy = occupancy_grid.occupancy
         for col in occupancy:
             for o in col:
                 grid_drawer['occupancy'].append(int(100*o))

@@ -60,7 +60,7 @@ class Config:
             self.red_player_station_pos = IN_TO_M * np.array([61.00, -314.96])
 
             # Occupancy grid
-            self.occupancy_grid_width = 10
+            self.occupancy_grid_width = 8.4
             self.occupancy_grid_height = 16
             self.occupancy_grid_cell_resolution = 0.1
             self.occupancy_grid_origin = (0, 0)
