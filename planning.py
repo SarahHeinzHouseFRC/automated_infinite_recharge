@@ -19,22 +19,6 @@ class Planning:
         self.prev_obstacles = None  # Used to remember balls that were nearby but are now in LIDAR deadzone
         self.prev_goal = None  # Used to prevent flip-flopping between two equidistant goals
         self.occupancy_grid_dilation_kernel_size = config.occupancy_grid_dilation_kernel_size
-        self.ball_grid = geom.OccupancyGrid(config.occupancy_grid_width,
-                                            config.occupancy_grid_height,
-                                            config.occupancy_grid_cell_resolution,
-                                            config.occupancy_grid_origin)
-        self.temp_obstacle_grid = geom.OccupancyGrid(config.occupancy_grid_width,
-                                                     config.occupancy_grid_height,
-                                                     config.occupancy_grid_cell_resolution,
-                                                     config.occupancy_grid_origin)
-        self.obstacle_grid = geom.OccupancyGrid(config.occupancy_grid_width,
-                                                config.occupancy_grid_height,
-                                                config.occupancy_grid_cell_resolution,
-                                                config.occupancy_grid_origin)
-
-        self.deadzone_radius = config.lidar_deadzone_radius
-        self.aggregated_balls = dict()
-        self.aggregated_others = dict()
 
         self.ball_probability_decay_factor = config.ball_probability_decay_factor
         self.ball_probability_growth_factor = config.ball_probability_growth_factor
@@ -44,16 +28,39 @@ class Planning:
         self.obstacle_probability_growth_factor = config.obstacle_probability_growth_factor
         self.obstacle_probability_threshold = config.obstacle_probability_threshold
 
+        self.ball_grid = geom.OccupancyGrid(config.occupancy_grid_origin,
+                                            config.occupancy_grid_num_cols,
+                                            config.occupancy_grid_num_rows,
+                                            config.occupancy_grid_cell_resolution,
+                                            config.ball_probability_threshold)
+        self.temp_obstacle_grid = geom.OccupancyGrid(config.occupancy_grid_origin,
+                                                     config.occupancy_grid_num_cols,
+                                                     config.occupancy_grid_num_rows,
+                                                     config.occupancy_grid_cell_resolution,
+                                                     config.obstacle_probability_threshold)
+        self.obstacle_grid = geom.OccupancyGrid(config.occupancy_grid_origin,
+                                                config.occupancy_grid_num_cols,
+                                                config.occupancy_grid_num_rows,
+                                                config.occupancy_grid_cell_resolution,
+                                                config.obstacle_probability_threshold)
+
+        self.deadzone_radius = config.lidar_deadzone_radius
+        self.aggregated_balls = dict()
+        self.aggregated_others = dict()
+
     def run(self, world_state):
         """
         Picks a goal to drive towards and then determines a collision-free trajectory for driving to that goal.
         :param world_state: Output of perception
         :return: Dict containing the robot's current pose and a goal state as the input of controls
         """
-        # 1. Identify the goal
+        # Aggregate a more accurate world state over time
+        self.preprocess_world_state(world_state)
+
+        # Identify a goal
         self.behavior_planning(world_state)
 
-        # 2. Move towards it if there is a nearest ball (using A*)
+        # Plan a trajectory to the goal using A*
         self.motion_planning(world_state)
 
         plan = {
@@ -67,19 +74,75 @@ class Planning:
         }
         return plan
 
+    def preprocess_world_state(self, world_state):
+        """
+        Uses historical information about the world to build a more accurate map of where all balls and obstacles are.
+        Places results back into the world_state dict without adding any new fields.
+        """
+        curr_pos = world_state['pose'][0]  # Our current (x,y)
+
+        #
+        # Update ball positions
+        #
+
+        # Recover any balls that are now within the deadzone
+        if self.prev_obstacles is not None:
+            for ball in self.prev_obstacles:
+                if 0.5 < geom.dist(curr_pos, ball) <= self.deadzone_radius and ball not in world_state['balls']:
+                    world_state['balls'].append(ball)
+        self.prev_obstacles = world_state['balls']
+
+        # Decay the probability of all balls
+        self.ball_grid.decay_probabilities(self.ball_probability_decay_factor)
+
+        # Grow the probability of all ball grid cells currently containing balls
+        for ball_pos in world_state['balls']:
+            self.ball_grid.grow_probability(ball_pos, self.ball_probability_growth_factor)
+
+        # Get final ball positions out of ball grid
+        world_state['balls'] = []
+        for i in range(self.ball_grid.occupancy.shape[0]):
+            for j in range(self.ball_grid.occupancy.shape[1]):
+                cell_position = self.ball_grid.grid[i][j].position
+                p = self.ball_grid.occupancy[i][j]
+                if p >= self.ball_probability_threshold:
+                    world_state['balls'].append(cell_position)
+
+        #
+        # Build obstacle grid
+        #
+
+        # Add all obstacles into a temporary obstacle grid
+        self.temp_obstacle_grid.occupancy.fill(0)
+        for static_obstacle in self.field_columns:
+            self.temp_obstacle_grid.insert_convex_polygon(static_obstacle, 1.0)
+        for static_obstacle in self.field_trenches:
+            self.temp_obstacle_grid.insert_rectangular_obstacle(static_obstacle.bounding_box, 1.0)
+        for dynamic_obstacle in world_state['obstacles']:
+            self.temp_obstacle_grid.insert_rectangular_obstacle(dynamic_obstacle, self.obstacle_probability_growth_factor)
+
+        # Inflate all obstacles in the temporary obstacle grid
+        self.temp_obstacle_grid.inflate_obstacles(kernel_size=self.occupancy_grid_dilation_kernel_size)
+
+        # Decay the probability of all cells in the master obstacle grid
+        self.obstacle_grid.decay_probabilities(self.obstacle_probability_decay_factor)
+
+        # Update the master obstacle grid with our temporary one
+        self.obstacle_grid.occupancy += self.temp_obstacle_grid.occupancy
+        self.obstacle_grid.occupancy = np.clip(self.obstacle_grid.occupancy, a_min=0, a_max=1)
+
     def behavior_planning(self, world_state):
         """
         Identifies a goal state and places it into world_state['goal']. Also identifies whether to run the intake or
         outtake and places it into world_state['tube_mode'] as one of 'INTAKE', 'OUTTAKE', 'NONE'. Also identifies which
         direction to drive in, one of '1', '-1', or '0'
         """
-
-        start = world_state['pose'][0]  # Our current (x,y)
+        curr_pos = world_state['pose'][0]  # Our current (x,y)
         goal = None
         direction = None
         tube_mode = None
 
-        if geom.dist(start, self.scoring_zone) <= 0.15 and world_state['numIngestedBalls'] > 0:
+        if geom.dist(curr_pos, self.scoring_zone) <= 0.15 and world_state['numIngestedBalls'] > 0:
             # If we're in the scoring zone with some balls then run the outtake
             tube_mode = 'OUTTAKE'
             direction = 0
@@ -96,42 +159,16 @@ class Planning:
             tube_mode = 'INTAKE'
             direction = 1
 
-            # Recover any balls that are now within the deadzone
-            if self.prev_obstacles is not None:
-                for ball in self.prev_obstacles:
-                    if 0.5 < geom.dist(start, ball) <= self.deadzone_radius and ball not in world_state['balls']:
-                        world_state['balls'].append(ball)
-            self.prev_obstacles = world_state['balls']
-
-            # Decay the probability of all balls
-            self.ball_grid.occupancy -= self.ball_probability_decay_factor
-            self.ball_grid.occupancy = np.clip(self.ball_grid.occupancy, a_min=0, a_max=1)
-
-            # Increase the probability of all cells currently containing balls
-            for ball_pos in world_state['balls']:
-                cell_indices = self.ball_grid.get_cell(ball_pos).indices
-                self.ball_grid.occupancy[cell_indices] += self.ball_probability_growth_factor
-            self.ball_grid.occupancy = np.clip(self.ball_grid.occupancy, a_min=0, a_max=1)
-
-            # Get final ball positions
-            world_state['balls'] = []
-            for i in range(self.ball_grid.occupancy.shape[0]):
-                for j in range(self.ball_grid.occupancy.shape[1]):
-                    cell_position = self.ball_grid.grid[i][j].position
-                    p = self.ball_grid.occupancy[i][j]
-                    if p >= self.ball_probability_threshold:
-                        world_state['balls'].append(cell_position)
-
             # Find the closest ball
-            min_dist = np.inf
+            min_ball_dist = np.inf
             for ball_pos in world_state['balls']:
-                curr_dist = geom.dist(ball_pos, start)
-                if curr_dist < min_dist and self.obstacle_grid.get_occupancy(ball_pos) < self.obstacle_probability_threshold:
-                    min_dist = curr_dist
+                ball_dist = geom.dist(curr_pos, ball_pos)
+                if ball_dist < min_ball_dist and not self.obstacle_grid.get_occupancy(ball_pos):
+                    min_ball_dist = ball_dist
                     goal = ball_pos
 
         # If we're currently inside an obstacle, flail!
-        do_flail = self.obstacle_grid.get_occupancy(start) >= self.obstacle_probability_threshold
+        do_flail = self.obstacle_grid.get_occupancy(curr_pos)
 
         # Last resort!
         if goal is None:
@@ -155,25 +192,6 @@ class Planning:
             world_state['trajectory'] = None
             world_state['grid'] = self.obstacle_grid
             return
-
-        # Add all obstacles to a fresh obstacle grid and inflate them
-        self.temp_obstacle_grid.occupancy.fill(0)
-        for static_obstacle in self.field_columns:
-            self.temp_obstacle_grid.insert_convex_polygon(static_obstacle, 1.0)
-        for static_obstacle in self.field_trenches:
-            self.temp_obstacle_grid.insert_rectangular_obstacle(static_obstacle.bounding_box, 1.0)
-        for dynamic_obstacle in world_state['obstacles']:
-            self.temp_obstacle_grid.insert_rectangular_obstacle(dynamic_obstacle, self.obstacle_probability_growth_factor)
-        self.temp_obstacle_grid.inflate_obstacles(kernel_size=self.occupancy_grid_dilation_kernel_size)
-
-        # Decay the probability of all cells in the master obstacle grid
-        self.obstacle_grid.clear_node_parents()
-        self.obstacle_grid.occupancy -= self.obstacle_probability_decay_factor
-        self.obstacle_grid.occupancy = np.clip(self.obstacle_grid.occupancy, a_min=0, a_max=1)
-
-        # Update the master obstacle grid with our temp one
-        self.obstacle_grid.occupancy += self.temp_obstacle_grid.occupancy
-        self.obstacle_grid.occupancy = np.clip(self.obstacle_grid.occupancy, a_min=0, a_max=1)
 
         # Call A* to generate a path to goal
         trajectory = None

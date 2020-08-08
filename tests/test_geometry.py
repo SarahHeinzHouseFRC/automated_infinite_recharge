@@ -11,74 +11,47 @@ from geometry import Node, OccupancyGrid, Polygon
 
 class TestNodeClass(unittest.TestCase):
     def setUp(self):
-        self.position1 = (-1, 25)
-        self.position2 = (14, 4)
-        self.node1 = Node(self.position1, (1, 1))
-        self.node2 = Node(self.position2, (2, 2))
+        self.position = (-1, 25)
+        self.node = Node(self.position, (1, 1))
 
     def test_init_node_creates_node_with_specified_position(self):
-        # Assert.
-        self.assertEqual(self.node1.position, self.position1)
-
-    def test_clear_node_removes_parent(self):
-        # Arrange.
-        self.node1.parent = self.node2
-
-        # Act.
-        self.node1.clear()
-
-        # Assert.
-        self.assertEqual(self.node1.parent, None)
+        self.assertEqual(self.node.position, self.position)
 
 
 class TestGridClass(unittest.TestCase):
     def setUp(self):
-        self.height = 4
-        self.width = 4
+        self.num_cols = 4
+        self.num_rows = 4
         self.cell_resolution = 1
         self.origin = (0, 0)
+        self.p_threshold = 1.0
 
-        self.occupancy_grid = OccupancyGrid(self.width, self.height, self.cell_resolution, self.origin)
+        self.occupancy_grid = OccupancyGrid(self.origin, self.num_cols, self.num_rows, self.cell_resolution, self.p_threshold)
 
     def test_init_grid_creates_grid_with_specified_params(self):
         # Assert
-        self.assertEqual(self.width, self.occupancy_grid.width)
-        self.assertEqual(self.height, self.occupancy_grid.height)
+        self.assertEqual(self.num_cols, self.occupancy_grid.num_cols)
+        self.assertEqual(self.num_rows, self.occupancy_grid.num_rows)
         self.assertEqual(self.cell_resolution, self.occupancy_grid.cell_resolution)
         self.assertEqual(self.origin, self.occupancy_grid.origin)
 
-    def test_init_grid_creates_grid_with_correct_number_of_cols_and_rows(self):
+    def test_init_grid_creates_grid_with_correct_width_and_height(self):
         # Arrange.
-        expected_num_rows = int(self.height / self.cell_resolution)
-        expected_num_cols = int(self.width / self.cell_resolution)
+        expected_width = self.num_cols * self.cell_resolution
+        expected_height = self.num_rows * self.cell_resolution
 
         # Assert
-        self.assertEqual(expected_num_rows, self.occupancy_grid.num_rows)
-        self.assertEqual(expected_num_cols, self.occupancy_grid.num_cols)
+        self.assertEqual(expected_width, self.occupancy_grid.width)
+        self.assertEqual(expected_height, self.occupancy_grid.height)
 
     def test_init_grid_creates_n_rows_by_n_cols_array(self):
         # Arrange.
-        expected_num_rows = int(self.height / self.cell_resolution)
-        expected_num_cols = int(self.width / self.cell_resolution)
+        expected_num_cols = self.occupancy_grid.num_cols
+        expected_num_rows = self.occupancy_grid.num_rows
 
         # Assert
         self.assertEqual(expected_num_rows, self.occupancy_grid.num_rows)
         self.assertEqual(expected_num_cols, self.occupancy_grid.num_cols)
-
-    def test_clear_node_parents(self):
-        self.occupancy_grid.clear_node_parents()
-
-        for col in self.occupancy_grid.grid:
-            for cell in col:
-                self.assertEqual(cell.parent, None)
-
-    def test_clear(self):
-        self.occupancy_grid.clear()
-
-        for col in self.occupancy_grid.grid:
-            for cell in col:
-                self.assertEqual(cell.parent, None)
-                self.assertEqual(self.occupancy_grid.occupancy[cell.indices], False)
 
     def test_get_cell_valid(self):
         cell = self.occupancy_grid.get_cell((0.5, 0.5))
@@ -343,7 +316,7 @@ class TestConnectedComponents(unittest.TestCase):
 
 class TestAStar(unittest.TestCase):
     def setUp(self):
-        self.occupancy_grid = OccupancyGrid(width=4, height=4, cell_resolution=1, origin=(0,0))
+        self.occupancy_grid = OccupancyGrid(origin=(0,0), num_cols=4, num_rows=4, cell_resolution=1, p_threshold=1.0)
         self.start = (-1.5, -1.5)
         self.goal = (1.5, 1.5)
 
@@ -375,12 +348,13 @@ class TestAStar(unittest.TestCase):
 
 class TestSmoother(unittest.TestCase):
     def setUp(self):
-        self.height = 4
-        self.width = 4
+        self.num_cols = 4
+        self.num_rows = 4
         self.cell_resolution = 1
         self.origin = (0, 0)
+        self.p_threshold = 1.0
 
-        self.occupancy_grid = OccupancyGrid(self.width, self.height, self.cell_resolution, self.origin)
+        self.occupancy_grid = OccupancyGrid(self.origin, self.num_cols, self.num_rows, self.cell_resolution, self.p_threshold)
 
     def test_trajectory_with_two_points_remains_unchanged(self):
         trajectory = [(-1.5, -1.5), (1.5, 1.5)]

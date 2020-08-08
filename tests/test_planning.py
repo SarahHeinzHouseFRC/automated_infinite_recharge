@@ -9,12 +9,116 @@ from geometry import Polygon
 from tests.test_utils import *
 
 
+class TestWorldStatePreprocessor(unittest.TestCase):
+    def setUp(self):
+        config = Mock()
+        config.field_columns = []
+        config.field_trenches = []
+        config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
+        config.blue_player_station_pos = np.array([10, 10])
+        config.occupancy_grid_num_cols = 6
+        config.occupancy_grid_num_rows = 6
+        config.occupancy_grid_cell_resolution = 1
+        config.occupancy_grid_origin = (0, 0)
+        config.occupancy_grid_dilation_kernel_size = 3
+        config.ball_probability_decay_factor = 1
+        config.ball_probability_growth_factor = 1
+        config.ball_probability_threshold = 1
+        config.obstacle_probability_decay_factor = 1
+        config.obstacle_probability_growth_factor = 1
+        config.obstacle_probability_threshold = 1
+        config.lidar_deadzone_radius = 1.0
+
+        self.planning = Planning(config)
+
+    def test_robot_remembers_balls_within_lidar_deadzone(self):
+        world_state = {
+            'pose': ((0, 0), 0),
+            'balls': [(0.5, 0.5)],
+            'obstacles': []
+        }
+
+        self.planning.preprocess_world_state(world_state)
+
+        world_state = {
+            'pose': ((0, 0), 0),
+            'numIngestedBalls': 0,
+            'balls': [],
+            'obstacles': [],
+        }
+
+        self.planning.preprocess_world_state(world_state)
+
+        expected = {
+            'pose': ((0, 0), 0),
+            'numIngestedBalls': 0,
+            'balls': [(0.5, 0.5)],
+            'obstacles': [],
+        }
+        actual = world_state
+        self.assertEqual(expected, actual)
+
+    def test_robot_forgets_balls_outside_lidar_deadzone(self):
+        world_state = {
+            'pose': ((0, 0), 0),
+            'balls': [(2.5, 2.5)],
+            'obstacles': []
+        }
+
+        self.planning.preprocess_world_state(world_state)
+
+        world_state = {
+            'pose': ((0, 0), 0),
+            'numIngestedBalls': 0,
+            'balls': [],
+            'obstacles': [],
+        }
+
+        self.planning.preprocess_world_state(world_state)
+
+        expected = {
+            'pose': ((0, 0), 0),
+            'numIngestedBalls': 0,
+            'balls': [],
+            'obstacles': [],
+        }
+        actual = world_state
+        self.assertEqual(expected, actual)
+
+    def test_robot_forgets_obstacles_that_appear_sporadically(self):
+        world_state = {
+            'pose': ((0, 0), 0),
+            'balls': [],
+            'obstacles': [((-1, -1), (1, 1))]
+        }
+
+        self.planning.preprocess_world_state(world_state)
+
+        world_state = {
+            'pose': ((0, 0), 0),
+            'numIngestedBalls': 0,
+            'balls': [],
+            'obstacles': [],
+        }
+
+        self.planning.preprocess_world_state(world_state)
+
+        expected = {
+            'pose': ((0, 0), 0),
+            'numIngestedBalls': 0,
+            'balls': [],
+            'obstacles': [],
+        }
+        actual = world_state
+        self.assertEqual(expected, actual)
+
+
 class TestBehaviorPlanning(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
-        self.config.occupancy_grid_width = 6
-        self.config.occupancy_grid_height = 6
+        self.config.occupancy_grid_num_cols = 6
+        self.config.occupancy_grid_num_rows = 6
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
@@ -45,34 +149,6 @@ class TestBehaviorPlanning(unittest.TestCase):
             'tube_mode': 'INTAKE'
         }
         actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
-        self.assertEqual(expected, actual)
-
-    def test_robot_remembers_balls_within_lidar_deadzone(self):
-        world_state = {
-            'pose': ((0, 0), 0),
-            'numIngestedBalls': 0,
-            'balls': [(0.5, 0.5)],
-            'obstacles': []
-        }
-
-        self.planning.behavior_planning(world_state)
-
-        world_state = {
-            'pose': ((0, 0), 0),
-            'numIngestedBalls': 0,
-            'balls': [],
-            'obstacles': [],
-        }
-
-        self.planning.behavior_planning(world_state)
-
-        expected = {
-            'goal': (0.5, 0.5),
-            'direction': 1,
-            'tube_mode': 'INTAKE',
-            'flail': False,
-        }
-        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode', 'flail')}
         self.assertEqual(expected, actual)
 
     def test_robot_drives_to_goal_backwards_when_it_has_five_balls_and_is_far_from_goal(self):
@@ -151,8 +227,8 @@ class TestMotionPlanning(unittest.TestCase):
         self.config = Mock()
         self.config.field_columns = []
         self.config.field_trenches = []
-        self.config.occupancy_grid_width = 6
-        self.config.occupancy_grid_height = 6
+        self.config.occupancy_grid_num_cols = 6
+        self.config.occupancy_grid_num_rows = 6
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3
@@ -188,8 +264,8 @@ class TestMotionPlanning(unittest.TestCase):
         self.assertEqual(expected_trajectory_length, actual_trajectory_length)
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
 
-    def test_motion_planning_avoids_static_obstacle(self):
-        self.planning.field_columns = [Polygon(make_square_vertices(side_length=1.5, center=(0,0)))]
+    def test_motion_planning_avoids_obstacles(self):
+        self.planning.obstacle_grid.occupancy[1:5,1:5] = 1
 
         world_state = {
             'obstacles': [],
@@ -206,25 +282,6 @@ class TestMotionPlanning(unittest.TestCase):
         expected_trajectory_length = 4
 
         actual_trajectory_length = len(world_state['trajectory'])
-        np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
-        self.assertEqual(expected_trajectory_length, actual_trajectory_length)
-
-    def test_motion_planning_avoids_dynamic_obstacle(self):
-        world_state = {
-            'obstacles': [((-0.5, -0.5), (0.5, 0.5))],
-            'pose': self.pose,
-            'goal': self.goal,
-            'flail': False,
-        }
-
-        self.planning.motion_planning(world_state)
-
-        expected_occupancy_grid = np.zeros(shape=(6, 6), dtype=np.uint8)
-        expected_occupancy_grid[1:5, 1:5] = np.ones(shape=(4, 4))
-        actual_occupancy_grid = world_state['grid'].occupancy
-        expected_trajectory_length = 4
-        actual_trajectory_length = len(world_state['trajectory'])
-
         np.testing.assert_array_equal(expected_occupancy_grid, actual_occupancy_grid)
         self.assertEqual(expected_trajectory_length, actual_trajectory_length)
 
@@ -275,8 +332,8 @@ class TestRun(unittest.TestCase):
         self.config.field_columns = []
         self.config.field_trenches = []
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
-        self.config.occupancy_grid_width = 6
-        self.config.occupancy_grid_height = 6
+        self.config.occupancy_grid_num_cols = 6
+        self.config.occupancy_grid_num_rows = 6
         self.config.occupancy_grid_cell_resolution = 1
         self.config.occupancy_grid_origin = (0, 0)
         self.config.occupancy_grid_dilation_kernel_size = 3

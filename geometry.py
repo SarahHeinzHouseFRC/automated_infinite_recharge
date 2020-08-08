@@ -26,28 +26,28 @@ class Node:
     def __str__(self):
         return f'Node{self.indices}'
 
-    def clear(self):
-        self.parent = None
-
 
 class OccupancyGrid:
-    def __init__(self, width, height, cell_resolution, origin):
+    def __init__(self, origin, num_cols, num_rows, cell_resolution, p_threshold):
         """
-        Constructs a list of nodes comprising this rectangular area.
-        Assumes cell_resolution divides evenly into length and width
-        :param width: Width of the grid in meters
-        :param height: Height of the grid in meters
+        Constructs an occupancy grid with the given number of columns and rows centered at the given origin. This
+        occupancy grid uses probabilities to determine whether an area is occupied or not. Inserting an obstacle is done
+        using the insert_rectangular_obstacle() or insert_polygonal_obstacle() methods. Decaying the grid is done by
+        calling grid.decay(). A cell is considered free if 0 <= p < p_threshold and occupied if p_threshold <= p <= 1.
+
+        :param num_cols: Width of the grid in meters
+        :param num_rows: Height of the grid in meters
         :param cell_resolution: Width and height of a single cell
         :param origin: Position of grid center in meters as tuple(x, y)
+        :param p_threshold: Threshold for considering a cell occupied or not
         """
-
-        # store the resolution of each cell for marking cells later
-        self.width = width
-        self.height = height
-        self.cell_resolution = cell_resolution
         self.origin = origin
-        self.num_cols = int(self.width / self.cell_resolution)
-        self.num_rows = int(self.height / self.cell_resolution)
+        self.num_cols = num_cols
+        self.num_rows = num_rows
+        self.cell_resolution = cell_resolution
+        self.width = self.num_cols * self.cell_resolution
+        self.height = self.num_rows * self.cell_resolution
+        self.p_threshold = p_threshold
         self.grid = np.ndarray((self.num_cols, self.num_rows), dtype=Node)
 
         self.occupancy = np.zeros(self.grid.shape, dtype=np.float)
@@ -86,26 +86,11 @@ class OccupancyGrid:
                 if x > min_col and y > min_row:
                     node.neighbors.add((self.grid[x-1][y-1], diagonal_cell_cost))
 
-    def clear_node_parents(self):
-        """
-        Resets all parents but does not mark cells as unoccupied
-        """
-        for col in self.grid:
-            for cell in col:
-                cell.clear()
-
-    def clear(self):
-        """
-        Resets all parents and marks all nodes as unoccupied
-        """
-        self.clear_node_parents()
-        self.occupancy.fill(0)
-
     def get_cell(self, point):
         """
-        Queries the grid to return the cell containing the given point, or None if out-of-bounds
+        Queries the grid to return the cell containing the given point (or None if out-of-bounds)
         :param point: A point as tuple(x, y)
-        :return: The node corresponding to the given point
+        :return: The grid cell corresponding to the given point
         """
         # Error-checking
         x = point[0]
@@ -135,8 +120,14 @@ class OccupancyGrid:
         return min_col, min_row, max_col, max_row
 
     def get_occupancy(self, pos):
+        """
+        Returns whether the given cell at the given position is occupied or unoccupied (based on its probability and the
+        probability threshold set during init)
+        :param pos: 2D position as array-like
+        :return: True for occupied or False for unoccupied
+        """
         cell = self.get_cell(pos)
-        return self.occupancy[cell.indices]
+        return self.occupancy[cell.indices] >= self.p_threshold
 
     def set_occupancy(self, pos, occupancy_value):
         cell_indices = self.get_cell(pos).indices
@@ -196,6 +187,24 @@ class OccupancyGrid:
             else:
                 for cell in contact_cells:
                     self.occupancy[cell.indices] += growth_factor  # make sure contact cells are marked as occupied
+
+    def grow_probability(self, pos, growth_factor):
+        """
+        Grows the probability of the cell at the given position (with an upper bound of 0)
+        :param pos: Position within the grid
+        :param growth_factor Float value 0-1
+        """
+        cell_indices = self.get_cell(pos).indices
+        p = self.occupancy[cell_indices]
+        self.occupancy[cell_indices] = min(p + growth_factor, 1.0)
+
+    def decay_probabilities(self, decay_factor):
+        """
+        Decays all probabilities in the grid by decay_factor (with a lower bound of 0)
+        :param decay_factor: Float value 0-1
+        """
+        self.occupancy -= decay_factor
+        self.occupancy = np.clip(self.occupancy, a_min=0, a_max=1)
 
     def inflate_obstacles(self, kernel_size):
         """
@@ -286,6 +295,11 @@ def a_star(occupancy_grid, occupancy_threshold, start, goal):
     path = [node.position for node in node_path]
     path[0] = start
     path[-1] = goal
+
+    # Cleanup
+    for col in occupancy_grid.grid:
+        for cell in col:
+            cell.parent = None
 
     return path
 
