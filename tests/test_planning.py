@@ -69,9 +69,10 @@ class TestBehaviorPlanning(unittest.TestCase):
         expected = {
             'goal': (0.5, 0.5),
             'direction': 1,
-            'tube_mode': 'INTAKE'
+            'tube_mode': 'INTAKE',
+            'flail': False,
         }
-        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode', 'flail')}
         self.assertEqual(expected, actual)
 
     def test_robot_drives_to_goal_backwards_when_it_has_five_balls_and_is_far_from_goal(self):
@@ -87,9 +88,10 @@ class TestBehaviorPlanning(unittest.TestCase):
         expected = {
             'goal': self.planning.scoring_zone,
             'direction': -1,
-            'tube_mode': 'INTAKE'
+            'tube_mode': 'INTAKE',
+            'flail': False,
         }
-        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode', 'flail')}
         self.assertEqual(expected, actual)
 
     def test_robot_scores_when_it_has_five_balls_and_is_at_goal(self):
@@ -105,9 +107,10 @@ class TestBehaviorPlanning(unittest.TestCase):
         expected = {
             'goal': self.planning.scoring_zone,
             'direction': 0,
-            'tube_mode': 'OUTTAKE'
+            'tube_mode': 'OUTTAKE',
+            'flail': False,
         }
-        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode', 'flail')}
         self.assertEqual(expected, actual)
 
     def test_robot_stays_at_goal_while_scoring(self):
@@ -123,10 +126,24 @@ class TestBehaviorPlanning(unittest.TestCase):
         expected = {
             'goal': self.planning.scoring_zone,
             'direction': 0,
-            'tube_mode': 'OUTTAKE'
+            'tube_mode': 'OUTTAKE',
+            'flail': False,
         }
-        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode')}
+        actual = {k: world_state[k] for k in ('goal', 'direction', 'tube_mode', 'flail')}
         self.assertEqual(expected, actual)
+
+    def test_robot_flails_when_inside_obstacle(self):
+        world_state = {
+            'pose': ((0, 0), 0),
+            'numIngestedBalls': 0,
+            'balls': [],
+            'obstacles': []
+        }
+
+        self.planning.obstacle_grid.occupancy[:,:] = 1
+        self.planning.behavior_planning(world_state)
+
+        self.assertTrue(world_state['flail'])
 
 
 class TestMotionPlanning(unittest.TestCase):
@@ -158,6 +175,7 @@ class TestMotionPlanning(unittest.TestCase):
             'obstacles': [],
             'pose': self.pose,
             'goal': self.goal,
+            'flail': False,
         }
 
         self.planning.motion_planning(world_state)
@@ -177,6 +195,7 @@ class TestMotionPlanning(unittest.TestCase):
             'obstacles': [],
             'pose': self.pose,
             'goal': self.goal,
+            'flail': False,
         }
 
         self.planning.motion_planning(world_state)
@@ -195,6 +214,7 @@ class TestMotionPlanning(unittest.TestCase):
             'obstacles': [((-0.5, -0.5), (0.5, 0.5))],
             'pose': self.pose,
             'goal': self.goal,
+            'flail': False,
         }
 
         self.planning.motion_planning(world_state)
@@ -213,6 +233,7 @@ class TestMotionPlanning(unittest.TestCase):
             'obstacles': [((1, 1), (2, 2))],
             'pose': self.pose,
             'goal': self.goal,
+            'flail': False,
         }
 
         goal_cell = self.planning.obstacle_grid.get_cell(self.goal)
@@ -226,6 +247,7 @@ class TestMotionPlanning(unittest.TestCase):
             'obstacles': [],
             'pose': self.pose,
             'goal': self.pose[0],
+            'flail': False,
         }
 
         self.planning.motion_planning(world_state)
@@ -233,6 +255,18 @@ class TestMotionPlanning(unittest.TestCase):
         expected = 2
         actual = len(world_state['trajectory'])
         self.assertEqual(expected, actual)
+
+    def test_flail_returns_no_trajectory(self):
+        world_state = {
+            'obstacles': [],
+            'pose': self.pose,
+            'goal': self.pose[0],
+            'flail': True,
+        }
+
+        self.planning.motion_planning(world_state)
+
+        self.assertIsNone(world_state['trajectory'])
 
 
 class TestRun(unittest.TestCase):

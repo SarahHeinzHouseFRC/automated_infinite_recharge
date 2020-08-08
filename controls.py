@@ -5,7 +5,7 @@
 import time
 import geometry as geom
 import numpy as np
-from math import atan2
+import math
 
 
 class PID:
@@ -110,52 +110,61 @@ class Controls:
             'draw': []  # List of shapes to draw
         }
 
-        if plan_state['trajectory'] is None:
-            return vehicle_commands # nothing new here
+        if plan_state['flail']:
+            curr_time = time.time()
+            vehicle_commands['leftDriveMotorSpeed'] = int(self.max_forward_speed * math.sin(2 * curr_time))
+            vehicle_commands['rightDriveMotorSpeed'] = int(self.max_forward_speed * math.sin(2.1 * curr_time))
+            vehicle_commands['intakeCenterMotorSpeed'] = self.max_intake_speed
+            vehicle_commands['intakeLeftMotorSpeed'] = self.max_intake_speed
+            vehicle_commands['intakeRightMotorSpeed'] = self.max_intake_speed
 
-        pose = plan_state['pose']
-        start = np.array(plan_state['trajectory'][0])
-        goal = np.array(plan_state['trajectory'][1])
-        direction = plan_state['direction']
-        tube_mode = plan_state['tube_mode']
+        elif plan_state['trajectory'] is None:
+            return vehicle_commands  # Nothing to do
 
-        curr_heading = pose[1] % (2*np.pi)
-        vec_start_to_goal = goal - start
-        desired_heading = np.arctan2(vec_start_to_goal[1], vec_start_to_goal[0]) % (2*np.pi)
-
-        if direction == -1:
-            desired_heading += np.pi
-            desired_heading = desired_heading % (2 * np.pi)
-
-        # If we're not facing the right way, turn in place. Else move straight.
-        heading_norm_vector = np.array([np.cos(curr_heading), np.sin(curr_heading)])
-        goal_norm_vector = np.array([np.cos(desired_heading), np.sin(desired_heading)])
-        x1 = heading_norm_vector[0]
-        y1 = heading_norm_vector[1]
-        x2 = goal_norm_vector[0]
-        y2 = goal_norm_vector[1]
-        heading_error = atan2(x1 * y2 - y1 * x2, x1 * x2 + y1 * y2)
-        if direction == 0:
-            left_drive_speed = 0
-            right_drive_speed = 0
-        elif abs(heading_error) >= self.heading_error_threshold:
-            left_drive_speed = -int(self.left_drive_pid.run(0, heading_error, curr_time))
-            right_drive_speed = int(self.right_drive_pid.run(0, heading_error, curr_time))
         else:
-            distance_to_goal = geom.dist(start, goal)
-            speed = int(abs(self.straight_pid.run(distance_to_goal, 0, curr_time)))
-            speed = min(speed, self.max_forward_speed)
-            left_drive_speed = speed * direction
-            right_drive_speed = speed * direction
+            pose = plan_state['pose']
+            start = np.array(plan_state['trajectory'][0])
+            goal = np.array(plan_state['trajectory'][1])
+            direction = plan_state['direction']
+            tube_mode = plan_state['tube_mode']
 
-        intake_speed = self.max_intake_speed if tube_mode == 'INTAKE' else 0
-        outtake_speed = self.max_outtake_speed if tube_mode == 'OUTTAKE' else 0
+            curr_heading = pose[1] % (2*np.pi)
+            vec_start_to_goal = goal - start
+            desired_heading = np.arctan2(vec_start_to_goal[1], vec_start_to_goal[0]) % (2*np.pi)
 
-        vehicle_commands['leftDriveMotorSpeed'] = left_drive_speed
-        vehicle_commands['rightDriveMotorSpeed'] = right_drive_speed
-        vehicle_commands['intakeCenterMotorSpeed'] = intake_speed
-        vehicle_commands['intakeLeftMotorSpeed'] = intake_speed
-        vehicle_commands['intakeRightMotorSpeed'] = intake_speed
-        vehicle_commands['tubeMotorSpeed'] = outtake_speed
+            if direction == -1:
+                desired_heading += np.pi
+                desired_heading = desired_heading % (2 * np.pi)
+
+            # If we're not facing the right way, turn in place. Else move straight.
+            heading_norm_vector = np.array([np.cos(curr_heading), np.sin(curr_heading)])
+            goal_norm_vector = np.array([np.cos(desired_heading), np.sin(desired_heading)])
+            x1 = heading_norm_vector[0]
+            y1 = heading_norm_vector[1]
+            x2 = goal_norm_vector[0]
+            y2 = goal_norm_vector[1]
+            heading_error = math.atan2(x1 * y2 - y1 * x2, x1 * x2 + y1 * y2)
+            if direction == 0:
+                left_drive_speed = 0
+                right_drive_speed = 0
+            elif abs(heading_error) >= self.heading_error_threshold:
+                left_drive_speed = -int(self.left_drive_pid.run(0, heading_error, curr_time))
+                right_drive_speed = int(self.right_drive_pid.run(0, heading_error, curr_time))
+            else:
+                distance_to_goal = geom.dist(start, goal)
+                speed = int(abs(self.straight_pid.run(distance_to_goal, 0, curr_time)))
+                speed = min(speed, self.max_forward_speed)
+                left_drive_speed = speed * direction
+                right_drive_speed = speed * direction
+
+            intake_speed = self.max_intake_speed if tube_mode == 'INTAKE' else 0
+            outtake_speed = self.max_outtake_speed if tube_mode == 'OUTTAKE' else 0
+
+            vehicle_commands['leftDriveMotorSpeed'] = left_drive_speed
+            vehicle_commands['rightDriveMotorSpeed'] = right_drive_speed
+            vehicle_commands['intakeCenterMotorSpeed'] = intake_speed
+            vehicle_commands['intakeLeftMotorSpeed'] = intake_speed
+            vehicle_commands['intakeRightMotorSpeed'] = intake_speed
+            vehicle_commands['tubeMotorSpeed'] = outtake_speed
 
         return vehicle_commands

@@ -44,12 +44,13 @@ class TestControls(unittest.TestCase):
             'trajectory': [(0, 0), (2.5, 0)],
             'direction': 0,
             'tube_mode': 'INTAKE',
+            'flail': False,
         }
 
         self.vehicle_commands = {}
 
     def test_stand_still(self):
-        self.vehicle_commands.update(self.controls.run(self.plan_state))
+        actual = self.controls.run(self.plan_state)
 
         expected = {
             'leftDriveMotorSpeed': 0,
@@ -63,14 +64,13 @@ class TestControls(unittest.TestCase):
             'outtake': 0,
             'draw': []
         }
-        actual = self.vehicle_commands
 
         self.assertEqual(expected, actual)
 
-    def test_drive_forwards(self):
+    def test_drive_forward(self):
         self.plan_state['direction'] = 1
 
-        self.vehicle_commands.update(self.controls.run(self.plan_state))
+        actual = self.controls.run(self.plan_state)
 
         expected = {
             'leftDriveMotorSpeed': self.controls.max_forward_speed,
@@ -84,15 +84,14 @@ class TestControls(unittest.TestCase):
             'outtake': 0,
             'draw': []
         }
-        actual = self.vehicle_commands
 
         self.assertEqual(expected, actual)
 
-    def test_drive_backwards(self):
+    def test_drive_backward(self):
         self.plan_state['trajectory'] = [(0, 0), (-2.5, 0)]
         self.plan_state['direction'] = -1
 
-        self.vehicle_commands.update(self.controls.run(self.plan_state))
+        actual = self.controls.run(self.plan_state)
 
         expected = {
             'leftDriveMotorSpeed': -self.controls.max_forward_speed,
@@ -106,7 +105,6 @@ class TestControls(unittest.TestCase):
             'outtake': 0,
             'draw': []
         }
-        actual = self.vehicle_commands
 
         self.assertEqual(expected, actual)
 
@@ -114,36 +112,58 @@ class TestControls(unittest.TestCase):
         self.plan_state['trajectory'] = [(0, 0), (0, -2.5)]
         self.plan_state['direction'] = 1
 
-        self.vehicle_commands.update(self.controls.run(self.plan_state))
+        vehicle_commands = self.controls.run(self.plan_state)
 
-        self.assertTrue(self.vehicle_commands['leftDriveMotorSpeed'] > 0)
-        self.assertTrue(self.vehicle_commands['rightDriveMotorSpeed'] < 0)
+        self.assertTrue(vehicle_commands['leftDriveMotorSpeed'] > 0)
+        self.assertTrue(vehicle_commands['rightDriveMotorSpeed'] < 0)
 
     def test_turn_left(self):
         self.plan_state['trajectory'] = [(0, 0), (0, 2.5)]
         self.plan_state['direction'] = 1
 
-        self.vehicle_commands.update(self.controls.run(self.plan_state))
+        vehicle_commands = self.controls.run(self.plan_state)
 
-        self.assertTrue(self.vehicle_commands['leftDriveMotorSpeed'] < 0)
-        self.assertTrue(self.vehicle_commands['rightDriveMotorSpeed'] > 0)
+        self.assertTrue(vehicle_commands['leftDriveMotorSpeed'] < 0)
+        self.assertTrue(vehicle_commands['rightDriveMotorSpeed'] > 0)
 
     def test_intake(self):
         self.plan_state['tube_mode'] = 'INTAKE'
 
-        self.vehicle_commands.update(self.controls.run(self.plan_state))
+        vehicle_commands = self.controls.run(self.plan_state)
 
-        self.assertEqual(self.vehicle_commands['intakeCenterMotorSpeed'], self.controls.max_intake_speed)
-        self.assertEqual(self.vehicle_commands['intakeLeftMotorSpeed'], self.controls.max_intake_speed)
-        self.assertEqual(self.vehicle_commands['intakeRightMotorSpeed'], self.controls.max_intake_speed)
-        self.assertEqual(self.vehicle_commands['tubeMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['intakeCenterMotorSpeed'], self.controls.max_intake_speed)
+        self.assertEqual(vehicle_commands['intakeLeftMotorSpeed'], self.controls.max_intake_speed)
+        self.assertEqual(vehicle_commands['intakeRightMotorSpeed'], self.controls.max_intake_speed)
+        self.assertEqual(vehicle_commands['tubeMotorSpeed'], 0)
 
     def test_outtake(self):
         self.plan_state['tube_mode'] = 'OUTTAKE'
 
-        self.vehicle_commands.update(self.controls.run(self.plan_state))
+        vehicle_commands = self.controls.run(self.plan_state)
 
-        self.assertEqual(self.vehicle_commands['intakeCenterMotorSpeed'], 0)
-        self.assertEqual(self.vehicle_commands['intakeLeftMotorSpeed'], 0)
-        self.assertEqual(self.vehicle_commands['intakeRightMotorSpeed'], 0)
-        self.assertEqual(self.vehicle_commands['tubeMotorSpeed'], self.controls.max_outtake_speed)
+        self.assertEqual(vehicle_commands['intakeCenterMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['intakeLeftMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['intakeRightMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['tubeMotorSpeed'], self.controls.max_outtake_speed)
+
+    def test_intake_running_during_flail(self):
+        self.plan_state['flail'] = True
+
+        vehicle_commands = self.controls.run(self.plan_state)
+
+        self.assertEqual(vehicle_commands['intakeCenterMotorSpeed'], self.controls.max_intake_speed)
+        self.assertEqual(vehicle_commands['intakeLeftMotorSpeed'], self.controls.max_intake_speed)
+        self.assertEqual(vehicle_commands['intakeRightMotorSpeed'], self.controls.max_intake_speed)
+        self.assertEqual(vehicle_commands['tubeMotorSpeed'], 0)
+
+    def test_do_nothing_when_trajectory_is_none(self):
+        self.plan_state['trajectory'] = None
+
+        vehicle_commands = self.controls.run(self.plan_state)
+
+        self.assertEqual(vehicle_commands['leftDriveMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['rightDriveMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['intakeCenterMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['intakeLeftMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['intakeRightMotorSpeed'], 0)
+        self.assertEqual(vehicle_commands['tubeMotorSpeed'], 0)

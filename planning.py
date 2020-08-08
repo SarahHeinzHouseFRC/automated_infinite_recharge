@@ -62,7 +62,8 @@ class Planning:
             'grid': world_state['grid'],
             'goal': world_state['goal'],
             'direction': world_state['direction'],
-            'tube_mode': world_state['tube_mode']
+            'tube_mode': world_state['tube_mode'],
+            'flail': world_state['flail'],
         }
         return plan
 
@@ -129,6 +130,9 @@ class Planning:
                     min_dist = curr_dist
                     goal = ball_pos
 
+        # If we're currently inside an obstacle, flail!
+        do_flail = self.obstacle_grid.get_occupancy(start) >= self.obstacle_probability_threshold
+
         # Last resort!
         if goal is None:
             # If we can't reach any balls then go towards the blue player station
@@ -136,6 +140,7 @@ class Planning:
             direction = 1
             goal = self.blue_player_station_pos
 
+        world_state['flail'] = do_flail
         world_state['goal'] = goal
         world_state['direction'] = direction
         world_state['tube_mode'] = tube_mode
@@ -146,6 +151,10 @@ class Planning:
         result is placed into world_state['trajectory']
         :param world_state: Outputs of perception and behavior planning
         """
+        if world_state['flail']:
+            world_state['trajectory'] = None
+            world_state['grid'] = self.obstacle_grid
+            return
 
         # Add all obstacles to a fresh obstacle grid and inflate them
         self.temp_obstacle_grid.occupancy.fill(0)
