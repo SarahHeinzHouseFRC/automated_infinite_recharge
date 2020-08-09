@@ -20,6 +20,7 @@ jobs:
     - name: Get Dependencies
       run: |
         sudo apt-get install -y python3-setuptools
+        sudo --set-home pip3 install --upgrade pip
         pip3 install -r requirements.txt
 
     - name: Run Unit Tests
@@ -31,7 +32,9 @@ jobs:
       uses: actions/checkout@v2.2.0
 
     - name: Get Dependencies
-      run: pip3 install -r requirements.txt
+      run: |
+        sudo --set-home pip3 install --upgrade pip
+        pip3 install -r requirements.txt
 
     - name: Run Unit Tests
       run: python3 -m unittest -v
