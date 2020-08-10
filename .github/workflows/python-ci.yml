@@ -20,6 +20,7 @@ jobs:
     - name: Get Dependencies
       run: |
         sudo apt-get install -y python3-setuptools
+        sudo --set-home pip3 install --upgrade pip
         pip3 install -r requirements.txt
 
     - name: Run Unit Tests
