@@ -82,6 +82,30 @@ class Planning:
         curr_pos = world_state['pose'][0]  # Our current (x,y)
 
         #
+        # Build obstacle grid
+        #
+
+        # Add all obstacles into a temporary obstacle grid
+        self.temp_obstacle_grid.occupancy.fill(0)
+        for static_obstacle in self.field_columns:
+            self.temp_obstacle_grid.insert_convex_polygon(static_obstacle, 1.0)
+        for static_obstacle in self.field_trenches:
+            self.temp_obstacle_grid.insert_rectangular_obstacle(static_obstacle.bounding_box, 1.0)
+        for dynamic_obstacle in world_state['obstacles']:
+            self.temp_obstacle_grid.insert_rectangular_obstacle(dynamic_obstacle,
+                                                                self.obstacle_probability_growth_factor)
+
+        # Inflate all obstacles in the temporary obstacle grid
+        self.temp_obstacle_grid.inflate_obstacles(kernel_size=self.occupancy_grid_dilation_kernel_size)
+
+        # Decay the probability of all cells in the master obstacle grid
+        self.obstacle_grid.decay_probabilities(self.obstacle_probability_decay_factor)
+
+        # Update the master obstacle grid with our temporary one
+        self.obstacle_grid.occupancy += self.temp_obstacle_grid.occupancy
+        self.obstacle_grid.occupancy = np.clip(self.obstacle_grid.occupancy, a_min=0, a_max=1)
+
+        #
         # Update ball positions
         #
 
@@ -104,32 +128,10 @@ class Planning:
         for i in range(self.ball_grid.occupancy.shape[0]):
             for j in range(self.ball_grid.occupancy.shape[1]):
                 cell_position = self.ball_grid.grid[i][j].position
-                p = self.ball_grid.occupancy[i][j]
-                if p >= self.ball_probability_threshold:
+                p_ball = self.ball_grid.occupancy[i][j]
+                p_occupied = self.obstacle_grid.occupancy[i][j]
+                if p_ball >= self.ball_probability_threshold and p_occupied < self.obstacle_probability_threshold:
                     world_state['balls'].append(cell_position)
-
-        #
-        # Build obstacle grid
-        #
-
-        # Add all obstacles into a temporary obstacle grid
-        self.temp_obstacle_grid.occupancy.fill(0)
-        for static_obstacle in self.field_columns:
-            self.temp_obstacle_grid.insert_convex_polygon(static_obstacle, 1.0)
-        for static_obstacle in self.field_trenches:
-            self.temp_obstacle_grid.insert_rectangular_obstacle(static_obstacle.bounding_box, 1.0)
-        for dynamic_obstacle in world_state['obstacles']:
-            self.temp_obstacle_grid.insert_rectangular_obstacle(dynamic_obstacle, self.obstacle_probability_growth_factor)
-
-        # Inflate all obstacles in the temporary obstacle grid
-        self.temp_obstacle_grid.inflate_obstacles(kernel_size=self.occupancy_grid_dilation_kernel_size)
-
-        # Decay the probability of all cells in the master obstacle grid
-        self.obstacle_grid.decay_probabilities(self.obstacle_probability_decay_factor)
-
-        # Update the master obstacle grid with our temporary one
-        self.obstacle_grid.occupancy += self.temp_obstacle_grid.occupancy
-        self.obstacle_grid.occupancy = np.clip(self.obstacle_grid.occupancy, a_min=0, a_max=1)
 
     def behavior_planning(self, world_state):
         """
@@ -138,26 +140,45 @@ class Planning:
         direction to drive in, one of '1', '-1', or '0'
         """
         curr_pos = world_state['pose'][0]  # Our current (x,y)
+
+        tube_mode = 'NONE'
+        direction = 0
+        flail = False
         goal = None
-        direction = None
-        tube_mode = None
 
         if geom.dist(curr_pos, self.scoring_zone) <= 0.15 and world_state['numIngestedBalls'] > 0:
             # If we're in the scoring zone with some balls then run the outtake
             tube_mode = 'OUTTAKE'
             direction = 0
+            flail = False
             goal = self.scoring_zone
 
-        elif world_state['numIngestedBalls'] > 4:
-            # If we have >4 balls then drive backwards towards the goal
+        elif self.obstacle_grid.get_occupancy(curr_pos):
+            # If we're currently inside an obstacle, flail!
+            tube_mode = 'INTAKE'
+            direction = 1
+            flail = True
+            goal = None
+
+        elif world_state['numIngestedBalls'] >= 5:
+            # If we have >=5 balls then drive backwards towards the goal
             tube_mode = 'INTAKE'
             direction = -1
+            flail = False
             goal = self.scoring_zone
+
+        elif len(world_state['balls']) == 0:
+            # If we can't see any more balls to go towards, then go towards the human player station
+            tube_mode = 'INTAKE'
+            direction = 1
+            flail = False
+            goal = self.blue_player_station_pos
 
         else:
             # The rest of the time, just run the intake and go towards the closest unobstructed ball
             tube_mode = 'INTAKE'
             direction = 1
+            flail = False
 
             # Find the closest ball
             min_ball_dist = np.inf
@@ -167,20 +188,10 @@ class Planning:
                     min_ball_dist = ball_dist
                     goal = ball_pos
 
-        # If we're currently inside an obstacle, flail!
-        do_flail = self.obstacle_grid.get_occupancy(curr_pos)
-
-        # Last resort!
-        if goal is None:
-            # If we can't reach any balls then go towards the blue player station
-            tube_mode = 'INTAKE'
-            direction = 1
-            goal = self.blue_player_station_pos
-
-        world_state['flail'] = do_flail
-        world_state['goal'] = goal
-        world_state['direction'] = direction
         world_state['tube_mode'] = tube_mode
+        world_state['direction'] = direction
+        world_state['flail'] = flail
+        world_state['goal'] = goal
 
     def motion_planning(self, world_state):
         """
