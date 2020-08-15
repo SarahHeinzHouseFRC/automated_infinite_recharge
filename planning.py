@@ -67,10 +67,11 @@ class Planning:
             'pose': world_state['pose'],
             'trajectory': world_state['trajectory'],
             'grid': world_state['grid'],
-            'goal': world_state['goal'],
-            'direction': world_state['direction'],
             'tube_mode': world_state['tube_mode'],
+            'direction': world_state['direction'],
+            'field_outtake': world_state['field_outtake'],
             'flail': world_state['flail'],
+            'goal': world_state['goal'],
         }
         return plan
 
@@ -143,6 +144,7 @@ class Planning:
 
         tube_mode = 'NONE'
         direction = 0
+        field_outtake = False
         flail = False
         goal = None
 
@@ -150,6 +152,15 @@ class Planning:
             # If we're in the scoring zone with some balls then run the outtake
             tube_mode = 'OUTTAKE'
             direction = 0
+            field_outtake = False
+            flail = False
+            goal = self.scoring_zone
+
+        elif geom.dist(curr_pos, self.blue_player_station_pos) <= 0.15 and world_state['numIngestedBalls'] <= 5:
+            # If we're in the human player station and don't yet have 5 balls then request another ball from the field
+            tube_mode = 'INTAKE'
+            direction = -1
+            field_outtake = True
             flail = False
             goal = self.scoring_zone
 
@@ -157,6 +168,7 @@ class Planning:
             # If we're currently inside an obstacle, flail!
             tube_mode = 'INTAKE'
             direction = 1
+            field_outtake = False
             flail = True
             goal = None
 
@@ -164,6 +176,7 @@ class Planning:
             # If we have >=5 balls then drive backwards towards the goal
             tube_mode = 'INTAKE'
             direction = -1
+            field_outtake = False
             flail = False
             goal = self.scoring_zone
 
@@ -171,6 +184,7 @@ class Planning:
             # If we can't see any more balls to go towards, then go towards the human player station
             tube_mode = 'INTAKE'
             direction = 1
+            field_outtake = False
             flail = False
             goal = self.blue_player_station_pos
 
@@ -178,6 +192,7 @@ class Planning:
             # The rest of the time, just run the intake and go towards the closest unobstructed ball
             tube_mode = 'INTAKE'
             direction = 1
+            field_outtake = False
             flail = False
 
             # Find the closest ball
@@ -190,6 +205,7 @@ class Planning:
 
         world_state['tube_mode'] = tube_mode
         world_state['direction'] = direction
+        world_state['field_outtake'] = field_outtake
         world_state['flail'] = flail
         world_state['goal'] = goal
 

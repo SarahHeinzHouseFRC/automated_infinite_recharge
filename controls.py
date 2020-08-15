@@ -90,6 +90,8 @@ class Controls:
         self.left_drive_pid = PID(kp, ki, kd)
         self.right_drive_pid = PID(kp, ki, kd)
 
+        self.field_outtake = False
+
     def run(self, plan_state):
         """
         Calculates controls given the current plan state
@@ -110,23 +112,23 @@ class Controls:
             'draw': []  # List of shapes to draw
         }
 
+        # Determine left and right drive motor speeds
+        direction = plan_state['direction']
+        tube_mode = plan_state['tube_mode']
         if plan_state['flail']:
             curr_time = time.time()
-            vehicle_commands['leftDriveMotorSpeed'] = int(self.max_forward_speed * math.sin(2 * curr_time))
-            vehicle_commands['rightDriveMotorSpeed'] = int(self.max_forward_speed * math.sin(2.1 * curr_time))
-            vehicle_commands['intakeCenterMotorSpeed'] = self.max_intake_speed
-            vehicle_commands['intakeLeftMotorSpeed'] = self.max_intake_speed
-            vehicle_commands['intakeRightMotorSpeed'] = self.max_intake_speed
+            left_drive_speed = int(self.max_forward_speed * math.sin(2 * curr_time))
+            right_drive_speed = int(self.max_forward_speed * math.sin(2.1 * curr_time))
 
-        elif plan_state['trajectory'] is None:
-            return vehicle_commands  # Nothing to do
+        elif plan_state['trajectory'] is None or direction == 0:
+            # Nothing to do
+            left_drive_speed = 0
+            right_drive_speed = 0
 
         else:
             pose = plan_state['pose']
             start = np.array(plan_state['trajectory'][0])
             goal = np.array(plan_state['trajectory'][1])
-            direction = plan_state['direction']
-            tube_mode = plan_state['tube_mode']
 
             curr_heading = pose[1] % (2*np.pi)
             vec_start_to_goal = goal - start
@@ -144,10 +146,7 @@ class Controls:
             x2 = goal_norm_vector[0]
             y2 = goal_norm_vector[1]
             heading_error = math.atan2(x1 * y2 - y1 * x2, x1 * x2 + y1 * y2)
-            if direction == 0:
-                left_drive_speed = 0
-                right_drive_speed = 0
-            elif abs(heading_error) >= self.heading_error_threshold:
+            if abs(heading_error) >= self.heading_error_threshold:
                 left_drive_speed = -int(self.left_drive_pid.run(0, heading_error, curr_time))
                 right_drive_speed = int(self.right_drive_pid.run(0, heading_error, curr_time))
             else:
@@ -157,14 +156,20 @@ class Controls:
                 left_drive_speed = speed * direction
                 right_drive_speed = speed * direction
 
-            intake_speed = self.max_intake_speed if tube_mode == 'INTAKE' else 0
-            outtake_speed = self.max_outtake_speed if tube_mode == 'OUTTAKE' else 0
+        # Run the intake/outtake motors
+        intake_speed = self.max_intake_speed if tube_mode == 'INTAKE' else 0
+        outtake_speed = self.max_outtake_speed if tube_mode == 'OUTTAKE' else 0
 
-            vehicle_commands['leftDriveMotorSpeed'] = left_drive_speed
-            vehicle_commands['rightDriveMotorSpeed'] = right_drive_speed
-            vehicle_commands['intakeCenterMotorSpeed'] = intake_speed
-            vehicle_commands['intakeLeftMotorSpeed'] = intake_speed
-            vehicle_commands['intakeRightMotorSpeed'] = intake_speed
-            vehicle_commands['tubeMotorSpeed'] = outtake_speed
+        # Request the field to outtake a ball
+        if plan_state['field_outtake']:
+            self.field_outtake = not self.field_outtake
+
+        vehicle_commands['leftDriveMotorSpeed'] = left_drive_speed
+        vehicle_commands['rightDriveMotorSpeed'] = right_drive_speed
+        vehicle_commands['intakeCenterMotorSpeed'] = intake_speed
+        vehicle_commands['intakeLeftMotorSpeed'] = intake_speed
+        vehicle_commands['intakeRightMotorSpeed'] = intake_speed
+        vehicle_commands['tubeMotorSpeed'] = outtake_speed
+        vehicle_commands['outtake'] = int(self.field_outtake)
 
         return vehicle_commands
