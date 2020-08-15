@@ -14,8 +14,9 @@ class TestWorldStatePreprocessor(unittest.TestCase):
         config = Mock()
         config.field_columns = []
         config.field_trenches = []
+        config.alliance = "Blue"
         config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
-        config.blue_player_station_pos = np.array([10, 10])
+        config.blue_chute_pos = np.array([10, 10])
         config.occupancy_grid_num_cols = 6
         config.occupancy_grid_num_rows = 6
         config.occupancy_grid_cell_resolution = 1
@@ -116,7 +117,9 @@ class TestWorldStatePreprocessor(unittest.TestCase):
 class TestBehaviorPlanning(unittest.TestCase):
     def setUp(self):
         self.config = Mock()
+        self.config.alliance = "Blue"
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
+        self.config.blue_chute_pos = np.array([10, 10])
         self.config.occupancy_grid_num_cols = 6
         self.config.occupancy_grid_num_rows = 6
         self.config.occupancy_grid_cell_resolution = 1
@@ -129,7 +132,6 @@ class TestBehaviorPlanning(unittest.TestCase):
         self.config.obstacle_probability_growth_factor = 1
         self.config.obstacle_probability_threshold = 1
         self.config.lidar_deadzone_radius = 0.85
-        self.config.blue_player_station_pos = np.array([10, 10])
 
         self.planning = Planning(self.config)
 
@@ -238,8 +240,9 @@ class TestMotionPlanning(unittest.TestCase):
         self.config.obstacle_probability_decay_factor = 0
         self.config.obstacle_probability_growth_factor = 1
         self.config.obstacle_probability_threshold = 1
+        self.config.alliance = "Blue"
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -2.5)))
-        self.config.blue_player_station_pos = np.array([10, 10])
+        self.config.blue_chute_pos = np.array([10, 10])
 
         self.pose = ((-2.5, -2.5), 0)
         self.goal = (2.5, 2.5)
@@ -331,7 +334,9 @@ class TestRun(unittest.TestCase):
         self.config = Mock()
         self.config.field_columns = []
         self.config.field_trenches = []
+        self.config.alliance = "Blue"
         self.config.blue_goal_region = Polygon(make_square_vertices(side_length=0.5, center=(-2.5, -3.5)))
+        self.config.blue_chute_pos = np.array([10, 10])
         self.config.occupancy_grid_num_cols = 6
         self.config.occupancy_grid_num_rows = 6
         self.config.occupancy_grid_cell_resolution = 1
@@ -343,7 +348,6 @@ class TestRun(unittest.TestCase):
         self.config.obstacle_probability_decay_factor = 0
         self.config.obstacle_probability_growth_factor = 1
         self.config.obstacle_probability_threshold = 1
-        self.config.blue_player_station_pos = np.array([10, 10])
 
         self.planning = Planning(self.config)
 

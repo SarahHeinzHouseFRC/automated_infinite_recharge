@@ -1,5 +1,13 @@
 # Copyright (c) 2020 FRC Team 3260
 
+players:
+  - { alliance: "Blue" }  # Player 1
+  - { alliance: "Red"  }  # Player 2
+  - { alliance: "Blue" }  # Player 3
+  - { alliance: "Red"  }  # Player 4
+  - { alliance: "Blue" }  # Player 5
+  - { alliance: "Red"  }  # Player 6
+
 client:
   ip: "127.0.0.1"                 # IP address where client is running
   port: 6000                      # Port where client is running

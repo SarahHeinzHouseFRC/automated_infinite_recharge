@@ -11,10 +11,14 @@ class Planning:
         self.field = config.outer_wall
         self.field_columns = config.field_columns
         self.field_trenches = config.field_trenches
-        self.red_goal_region = config.red_goal_region
-        self.blue_goal_region = config.blue_goal_region
-        self.scoring_zone = self.blue_goal_region.center + np.array([0, 1])
-        self.blue_player_station_pos = config.blue_player_station_pos - np.array([0, 0.5])
+
+        self.alliance = config.alliance
+        if self.alliance == "Blue":
+            self.scoring_zone = config.blue_goal_region.center + np.array([0, 1])
+            self.chute_pos = config.blue_chute_pos - np.array([0, 0.5])
+        else:
+            self.scoring_zone = config.red_goal_region.center - np.array([0, 1])
+            self.chute_pos = config.red_chute_pos + np.array([0, 0.5])
 
         self.prev_obstacles = None  # Used to remember balls that were nearby but are now in LIDAR deadzone
         self.prev_goal = None  # Used to prevent flip-flopping between two equidistant goals
@@ -156,7 +160,7 @@ class Planning:
             flail = False
             goal = self.scoring_zone
 
-        elif geom.dist(curr_pos, self.blue_player_station_pos) <= 0.15 and world_state['numIngestedBalls'] <= 5:
+        elif geom.dist(curr_pos, self.chute_pos) <= 0.15 and world_state['numIngestedBalls'] <= 5:
             # If we're in the human player station and don't yet have 5 balls then request another ball from the field
             tube_mode = 'INTAKE'
             direction = -1
@@ -186,7 +190,7 @@ class Planning:
             direction = 1
             field_outtake = False
             flail = False
-            goal = self.blue_player_station_pos
+            goal = self.chute_pos
 
         else:
             # The rest of the time, just run the intake and go towards the closest unobstructed ball
