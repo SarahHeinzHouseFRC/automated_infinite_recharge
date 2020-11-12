@@ -1,7 +1,7 @@
 # Automated Infinite Recharge #
 ## Team SHARP 3260 ##
 
-![A simulated robot plays the 2020 FRC game completely autonomously.](https://imgur.com/a/wwj5Nv8.gif)
+<iframe width="560" height="315" src="https://www.youtube.com/embed/mh1IuxmVZco" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 Python client written by FRC Team 3260 for the [FRC 2020 simulator](https://github.com/ptkinvent/frcsim2020). Uses
 simulated LIDAR and model of our 2020 robot to play Infinite Recharge 100% autonomously.
